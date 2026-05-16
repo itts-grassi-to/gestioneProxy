@@ -13,3 +13,4 @@ CLIENT
 Si dovrà creare una docker con front-end REACT (Next.js) 
 Il front-end dovrà contenere le pagine sia per la gestione utenti, sia per la gestione delle whitelist squid.
 
+Lavoro del team GP
