@@ -1,13 +1,12 @@
 import socket
-import json
 
 MOTORE_HOST = "127.0.0.1"
 MOTORE_PORT = 9000
 
 
-def receive_json(connection):
+def receive_message(connection):
     """
-    Riceve una risposta JSON terminata da newline.
+    Riceve una risposta terminata da newline.
     """
 
     data = b""
@@ -23,32 +22,24 @@ def receive_json(connection):
     if not data:
         return None
 
-    message = data.decode("utf-8").strip()
-    return json.loads(message)
+    return data.decode("utf-8").strip()
 
 
-def send_request_to_motore(code, payload=None):
+def send_request_to_motore(code, parameter=None):
     """
-    Invia una richiesta al motore tramite socket TCP.
-
-    Il backend manda un codice operativo e un eventuale payload.
-    Il motore risponde con un JSON contenente lo stato dell'operazione.
+    Invia un codice al motore tramite socket TCP.
     """
 
-    if payload is None:
-        payload = {}
-
-    request = {
-        "code": code,
-        "payload": payload
-    }
+    if parameter:
+        message = f"{code}|{parameter}"
+    else:
+        message = code
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((MOTORE_HOST, MOTORE_PORT))
 
-        message = json.dumps(request) + "\n"
-        client_socket.sendall(message.encode("utf-8"))
+        client_socket.sendall((message + "\n").encode("utf-8"))
 
-        response = receive_json(client_socket)
+        response_code = receive_message(client_socket)
 
-    return response
+    return response_code

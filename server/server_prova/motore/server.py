@@ -1,13 +1,12 @@
 import socket
-import json
 
 HOST = "0.0.0.0"
 PORT = 9000
 
 
-def receive_json(connection):
+def receive_message(connection):
     """
-    Riceve un messaggio JSON terminato da newline.
+    Riceve un messaggio terminato da newline.
     """
 
     data = b""
@@ -23,78 +22,57 @@ def receive_json(connection):
     if not data:
         return None
 
-    message = data.decode("utf-8").strip()
-    return json.loads(message)
+    return data.decode("utf-8").strip()
 
 
-def send_json(connection, response):
+def send_message(connection, message):
     """
-    Invia una risposta JSON terminata da newline.
+    Invia una risposta terminata da newline.
     """
 
-    message = json.dumps(response) + "\n"
-    connection.sendall(message.encode("utf-8"))
+    connection.sendall((message + "\n").encode("utf-8"))
 
 
-def handle_request(request):
+def handle_code(message):
     """
     Gestisce il codice ricevuto dal backend.
     """
 
-    code = request.get("code")
-    payload = request.get("payload", {})
+    parts = message.split("|", 1)
+    code = parts[0]
+    parameter = parts[1] if len(parts) > 1 else None
 
     print("Codice ricevuto:", code)
-    print("Payload ricevuto:", payload)
+    print("Parametro ricevuto:", parameter)
 
-    if code == "PING":
-        return {
-            "status": "ok",
-            "message": "Motore raggiungibile"
-        }
+    if code == "00":
+        return "50"
 
-    if code == "ENABLE_BLACKLIST":
-        blacklist_name = payload.get("blacklistName", "default")
+    elif code == "01":
+        return "51"
 
-        return {
-            "status": "ok",
-            "message": f"Richiesta di attivazione blacklist '{blacklist_name}' ricevuta"
-        }
+    elif code == "02":
+        return "52"
 
-    if code == "DISABLE_BLACKLIST":
-        blacklist_name = payload.get("blacklistName", "default")
+    elif code == "03":
+        if not parameter:
+            return "91"
 
-        return {
-            "status": "ok",
-            "message": f"Richiesta di disattivazione blacklist '{blacklist_name}' ricevuta"
-        }
+        return "53"
 
-    if code == "ADD_WHITELIST":
-        domain = payload.get("domain")
+    elif code == "04":
+        if not parameter:
+            return "91"
 
-        return {
-            "status": "ok",
-            "message": f"Richiesta di aggiunta dominio in whitelist ricevuta: {domain}"
-        }
+        return "54"
 
-    if code == "REMOVE_WHITELIST":
-        domain = payload.get("domain")
+    else:
+        return "90"
 
-        return {
-            "status": "ok",
-            "message": f"Richiesta di rimozione dominio dalla whitelist ricevuta: {domain}"
-        }
-
-    return {
-        "status": "error",
-        "message": "Codice non riconosciuto"
-    }
-
-
+    
 def start_server():
     """
     Avvia il motore sulla porta 9000.
-    Il server resta sempre in ascolto e gestisce una richiesta alla volta.
     """
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -112,26 +90,20 @@ def start_server():
                 print(f"\nConnessione ricevuta da {address}")
 
                 try:
-                    request = receive_json(connection)
+                    message = receive_message(connection)
 
-                    if request is None:
+                    if message is None:
                         print("Nessun dato ricevuto.")
                         continue
 
-                    response = handle_request(request)
-                    send_json(connection, response)
+                    response_code = handle_code(message)
+                    send_message(connection, response_code)
 
-                except json.JSONDecodeError:
-                    send_json(connection, {
-                        "status": "error",
-                        "message": "JSON non valido"
-                    })
+                    print("Codice risposta inviato:", response_code)
 
                 except Exception as error:
-                    send_json(connection, {
-                        "status": "error",
-                        "message": str(error)
-                    })
+                    print("Errore:", error)
+                    send_message(connection, "99")
 
 
 if __name__ == "__main__":

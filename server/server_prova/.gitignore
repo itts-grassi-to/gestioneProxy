@@ -16,3 +16,14 @@ __pycache__/
 
 .idea/
 .env
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.idea/
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*
