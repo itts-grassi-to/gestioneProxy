@@ -2,13 +2,15 @@
 
 Prima prova di comunicazione tra client Python e motore Python tramite socket TCP sulla porta 9000.
 
-## Avvio
+## Avvio del progetto
 
-Per verificare che funzioni servono 2 terminali.
+Per verificare che tutto funzioni servono 3 terminali.
 
-### Terminale 1 - Avviare il motore
+---
 
-Dalla cartella principale del progetto:
+## 1. Avviare il motore
+
+Dalla cartella `server_prova`:
 
 ```bash
 python motore/server.py
@@ -20,60 +22,74 @@ oppure su Windows:
 py motore/server.py
 ```
 
-Il motore deve mostrare:
-
-```text
-Motore avviato. In ascolto su 0.0.0.0:9000
-```
-
-Lasciare questo terminale aperto.
+Il motore resta in ascolto sulla porta `9000`.
 
 ---
 
-### Terminale 2 - Avviare il client di test
+## 2. Avviare il backend Python
 
-Dalla cartella principale del progetto:
+In un secondo terminale, sempre dalla cartella `server_prova`:
 
 ```bash
-python client/backend_test.py PING
+python client/backend_api.py
 ```
 
 oppure su Windows:
 
 ```bash
-py client/backend_test.py PING
+py client/backend_api.py
 ```
 
-Se funziona, il client mostra una risposta positiva dal motore.
+Il backend resta in ascolto sulla porta `8000`.
 
 ---
 
-## Altri comandi di test
+## 3. Avviare il frontend
+
+In un terzo terminale, entrare nella cartella `frontend`:
 
 ```bash
-python client/backend_test.py ENABLE_BLACKLIST social
+cd frontend
 ```
 
-```bash
-python client/backend_test.py DISABLE_BLACKLIST social
-```
+La prima volta installare le dipendenze:
 
 ```bash
-python client/backend_test.py ADD_WHITELIST youtube.com
+npm install
 ```
 
+Poi avviare il frontend:
+
 ```bash
-python client/backend_test.py REMOVE_WHITELIST youtube.com
+npm run dev
 ```
+
+Aprire il browser su:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## Test
+
+Dopo aver avviato motore, backend e frontend, cliccare il pulsante:
+
+```text
+PING motore
+```
+
+Se tutto funziona, nella pagina viene mostrata una risposta positiva dal motore.
 
 ---
 
 ## Spegnimento
 
-Per fermare il motore premere:
+Per fermare motore, backend o frontend, premere:
 
 ```text
 CTRL + C
 ```
 
-nel terminale in cui è stato avviato.
+nel terminale corrispondente.
