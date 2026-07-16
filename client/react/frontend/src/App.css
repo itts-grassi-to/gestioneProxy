@@ -1,0 +1,254 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app {
+  --primary: #1677b8;
+  --primary-hover: #0f669f;
+  --text: #172b3a;
+  --muted: #6c8090;
+  --border: #d7e3eb;
+  --background: #eef4f8;
+
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  "Segoe UI", sans-serif;
+  background:
+          radial-gradient(circle at 15% 15%, rgb(56 189 248 / 10%), transparent 30%),
+          radial-gradient(circle at 85% 85%, rgb(37 99 235 / 7%), transparent 30%),
+          var(--background);
+}
+
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+  padding: 42px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(38 69 91 / 12%);
+}
+
+/* Piccola linea blu superiore */
+.auth-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1677b8, #38bdf8);
+  content: "";
+}
+
+.auth-card h1 {
+  margin: 0;
+  color: #172b3a;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  text-align: center;
+}
+
+.subtitle {
+  margin: 10px 0 30px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-bottom: 8px;
+  color: #344b5c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  min-height: 49px;
+  margin-bottom: 19px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  color: var(--text);
+  background: #f8fbfd;
+  font-size: 0.93rem;
+  transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          background 160ms ease;
+}
+
+input:hover {
+  border-color: #abc3d3;
+}
+
+input:focus {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgb(22 119 184 / 11%);
+}
+
+button {
+  width: 100%;
+  min-height: 49px;
+  padding: 0 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 750;
+  transition:
+          transform 160ms ease,
+          background 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+}
+
+button:focus-visible {
+  outline: 3px solid rgb(22 119 184 / 25%);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.primary-button {
+  margin-top: 2px;
+  border: 1px solid var(--primary);
+  color: #ffffff;
+  background: var(--primary);
+  box-shadow: 0 8px 20px rgb(22 119 184 / 17%);
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
+  box-shadow: 0 10px 24px rgb(22 119 184 / 23%);
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  color: #42596a;
+  background: #f7fafc;
+}
+
+.secondary-button:hover {
+  transform: translateY(-1px);
+  border-color: #b6cbd9;
+  background: #eef5f9;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 22px 0;
+  color: #91a3b0;
+  font-size: 0.73rem;
+}
+
+.separator::before,
+.separator::after {
+  height: 1px;
+  flex: 1;
+  background: #dce6ed;
+  content: "";
+}
+
+.error-message,
+.success-message {
+  margin: 0 0 17px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.error-message {
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.success-message {
+  margin-top: 24px;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.user-info {
+  margin: 0 0 20px;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #f7fafc;
+}
+
+.user-info p {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 7px 0;
+  color: #607686;
+  font-size: 0.88rem;
+}
+
+.user-info strong {
+  color: #213746;
+}
+
+.user-info + p {
+  margin: 0 0 22px;
+  padding: 13px 15px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  color: #607686;
+  background: #f2f8fc;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 520px) {
+  .app {
+    align-items: start;
+    padding: 18px;
+  }
+
+  .auth-card {
+    margin-top: max(18px, 5vh);
+    padding: 36px 24px 30px;
+    border-radius: 15px;
+  }
+
+  .auth-card h1 {
+    font-size: 1.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  input {
+    transition: none;
+  }
+}

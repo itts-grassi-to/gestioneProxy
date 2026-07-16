@@ -14,3 +14,29 @@ Si dovrà creare una docker con front-end REACT (Next.js)
 Il front-end dovrà contenere le pagine sia per la gestione utenti, sia per la gestione delle whitelist squid.
 
 Lavoro del team GP
+
+
+## Architettura
+
+Il progetto è composto da:
+
+- `server/`: motore Python in ascolto sulla porta `9000`;
+- `client/react/backend/`: backend Python con FastAPI;
+- `client/react/frontend/`: frontend React avviato con Vite;
+- PostgreSQL per la gestione degli utenti;
+- Docker Compose per avviare client e database.
+
+## Ruoli
+
+L'applicazione prevede tre ruoli:
+
+- `guest`: accesso alle sole funzionalità pubbliche;
+- `docente`: gestione dei filtri proxy;
+- `admin`: gestione completa, compresi gli utenti.
+
+Attualmente sono implementati:
+
+- accesso come ospite;
+- autenticazione amministratore tramite username e password;
+- memorizzazione sicura delle password tramite hash;
+- collegamento del backend a PostgreSQL.

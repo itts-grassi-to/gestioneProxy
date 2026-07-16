@@ -1,0 +1,76 @@
+name: gestione-proxy
+
+services:
+  database:
+    image: postgres:15
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  backend:
+    image: gestione-proxy-backend:dev
+
+    build:
+      context: ./backend
+
+    ports:
+      - "8100:8100"
+
+    volumes:
+      - ./backend:/app
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+
+
+  frontend:
+    image: gestione-proxy-frontend:dev
+
+    build:
+      context: ./frontend
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_URL: ${VITE_API_URL}
+
+    depends_on:
+      - backend
+
+    stdin_open: true
+    tty: true
+
+
+volumes:
+  postgres_data:
