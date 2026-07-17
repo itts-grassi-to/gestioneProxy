@@ -9,15 +9,12 @@ from security import hash_password
 
 def create_initial_admin():
     """
-    Crea il primo amministratore usando i dati presenti nel file .env.
+    Crea l'amministratore iniziale.
+    Se non vengono specificate altre credenziali, usa admin/password.
     Se l'utente esiste già, non lo ricrea.
     """
-    username = os.getenv("ADMIN_USERNAME")
-    password = os.getenv("ADMIN_PASSWORD")
-
-    if not username or not password:
-        print("ADMIN_USERNAME o ADMIN_PASSWORD non configurati")
-        return
+    username = os.getenv("ADMIN_USERNAME") or "admin"
+    password = os.getenv("ADMIN_PASSWORD") or "password"
 
     with SessionLocal() as database:
         existing_user = database.scalar(

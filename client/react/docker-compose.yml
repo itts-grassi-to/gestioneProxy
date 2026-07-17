@@ -1,8 +1,9 @@
-name: gestione-proxy
+name: client_gp
 
 services:
   database:
     image: postgres:15
+    container_name: postgres_gp
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -10,7 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
 
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -28,6 +29,7 @@ services:
 
   backend:
     image: gestione-proxy-backend:dev
+    container_name: bke-gp
 
     build:
       context: ./backend
@@ -44,12 +46,13 @@ services:
 
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
 
 
   frontend:
     image: gestione-proxy-frontend:dev
+    container_name: fe-gp
 
     build:
       context: ./frontend
