@@ -1,4 +1,5 @@
 from typing import Optional
+from rotteGestioneAttributiProxy import router as proxy_router
 
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(proxy_router)
 
 # Permette al frontend React/Vite di chiamare il backend
 app.add_middleware(

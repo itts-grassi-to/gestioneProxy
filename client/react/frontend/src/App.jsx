@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import GestioneAttributiProxy from './GestioneAttributiProxy'
 
 const API_URL =
     import.meta.env.VITE_API_URL || 'http://localhost:8100'
@@ -64,52 +65,10 @@ function App() {
 
     if (user) {
         return (
-            <main className="app">
-                <section className="auth-card">
-                    <h1>Gestione Proxy</h1>
-
-                    <p className="success-message">
-                        Accesso effettuato correttamente
-                    </p>
-
-                    <div className="user-info">
-                        <p>
-                            <strong>Utente:</strong> {user.username}
-                        </p>
-
-                        <p>
-                            <strong>Ruolo:</strong> {user.role}
-                        </p>
-                    </div>
-
-                    {user.role === 'admin' && (
-                        <p>
-                            Puoi accedere alla gestione completa e alla gestione degli
-                            utenti.
-                        </p>
-                    )}
-
-                    {user.role === 'docente' && (
-                        <p>
-                            Puoi accedere alle funzioni di gestione del proxy.
-                        </p>
-                    )}
-
-                    {user.role === 'guest' && (
-                        <p>
-                            Puoi visualizzare soltanto le funzioni pubbliche.
-                        </p>
-                    )}
-
-                    <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={handleLogout}
-                    >
-                        Esci
-                    </button>
-                </section>
-            </main>
+            <GestioneAttributiProxy
+                user={user}
+                onLogout={handleLogout}
+            />
         )
     }
 

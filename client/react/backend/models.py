@@ -50,3 +50,33 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+class Proxy(Base):
+    __tablename__ = "proxies"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    codiceProxy: Mapped[str] = mapped_column(
+        String(50),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    descrizione: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+
+    indirizzoIP: Mapped[str] = mapped_column(
+        String(15),
+        nullable=False,
+    )
+
+    subnetMask: Mapped[str] = mapped_column(
+        String(15),
+        nullable=False,
+    )
