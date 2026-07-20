@@ -16,7 +16,7 @@ class ProxyBase(BaseModel):
 
     descrizione: str = Field(
         min_length=1,
-        max_length=80,
+        max_length=60,
     )
 
     indirizzoIP: str = Field(

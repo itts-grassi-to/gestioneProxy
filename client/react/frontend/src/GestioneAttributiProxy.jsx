@@ -457,7 +457,7 @@ function GestioneAttributiProxy({ user, onLogout }) {
                                 <label htmlFor="descrizione">
                                     Descrizione
                                     <span className="character-counter">
-                                        {formData.descrizione.length}/80
+                                        {formData.descrizione.length}/60
                                     </span>
                                 </label>
 
@@ -468,7 +468,7 @@ function GestioneAttributiProxy({ user, onLogout }) {
                                     value={formData.descrizione}
                                     onChange={handleInputChange}
                                     placeholder="Es. Proxy laboratorio informatico"
-                                    maxLength={80}
+                                    maxLength={60}
                                     required
                                 />
                             </div>
