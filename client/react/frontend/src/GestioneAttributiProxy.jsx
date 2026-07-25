@@ -25,7 +25,7 @@ function getErrorMessage(data) {
     return 'Si è verificato un errore'
 }
 
-function GestioneAttributiProxy({ user, onLogout }) {
+function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
     const [proxies, setProxies] = useState([])
     const [formData, setFormData] = useState(initialForm)
     const [editingId, setEditingId] = useState(null)
@@ -144,6 +144,11 @@ function GestioneAttributiProxy({ user, onLogout }) {
         setSuccess('')
         setFormOpen(true)
         scrollToForm()
+    }
+
+    function handleGoToFunctions(proxy) {
+        setOpenMenuId(null)
+        onGoToFunctions(proxy)
     }
 
     async function handleSubmit(event) {
@@ -359,6 +364,13 @@ function GestioneAttributiProxy({ user, onLogout }) {
 
                                             {openMenuId === proxy.id && (
                                                 <div className="proxy-menu">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleGoToFunctions(proxy)}
+                                                    >
+                                                        Vai a
+                                                    </button>
+
                                                     <button
                                                         type="button"
                                                         onClick={() => handleEdit(proxy)}

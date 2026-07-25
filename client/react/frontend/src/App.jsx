@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import GestioneAttributiProxy from './GestioneAttributiProxy'
+import GestioneFunzionalita from './GestioneFunzionalita'
 
 const API_URL =
     import.meta.env.VITE_API_URL || 'http://localhost:8100'
@@ -9,6 +10,10 @@ function App() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [user, setUser] = useState(null)
+
+    const [currentPage, setCurrentPage] = useState('proxy')
+    const [selectedProxy, setSelectedProxy] = useState(null)
+
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
@@ -39,6 +44,8 @@ function App() {
 
             setUser(data.user)
             setPassword('')
+            setSelectedProxy(null)
+            setCurrentPage('proxy')
         } catch {
             setError('Backend non raggiungibile')
         } finally {
@@ -54,6 +61,19 @@ function App() {
             username: 'Ospite',
             role: 'guest',
         })
+
+        setSelectedProxy(null)
+        setCurrentPage('proxy')
+    }
+
+    function handleGoToFunctions(proxy) {
+        setSelectedProxy(proxy)
+        setCurrentPage('functions')
+    }
+
+    function handleBackToProxies() {
+        setSelectedProxy(null)
+        setCurrentPage('proxy')
     }
 
     function handleLogout() {
@@ -61,13 +81,30 @@ function App() {
         setUsername('')
         setPassword('')
         setError('')
+        setSelectedProxy(null)
+        setCurrentPage('proxy')
     }
 
     if (user) {
+        if (
+            currentPage === 'functions' &&
+            selectedProxy
+        ) {
+            return (
+                <GestioneFunzionalita
+                    user={user}
+                    proxy={selectedProxy}
+                    onBack={handleBackToProxies}
+                    onLogout={handleLogout}
+                />
+            )
+        }
+
         return (
             <GestioneAttributiProxy
                 user={user}
                 onLogout={handleLogout}
+                onGoToFunctions={handleGoToFunctions}
             />
         )
     }
