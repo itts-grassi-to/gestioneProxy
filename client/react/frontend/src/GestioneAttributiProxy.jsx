@@ -25,6 +25,51 @@ function getErrorMessage(data) {
     return 'Si è verificato un errore'
 }
 
+function cleanValidationMessage(message) {
+    return (message || 'Valore non valido')
+        .replace(/^Value error,\s*/i, '')
+}
+
+function parseFormErrors(data) {
+    const fieldErrors = {}
+    let generalError = ''
+
+    if (Array.isArray(data?.detail)) {
+        data.detail.forEach((error) => {
+            const field = error.loc?.at(-1)
+            const message = cleanValidationMessage(error.msg)
+
+            if (
+                field &&
+                Object.prototype.hasOwnProperty.call(
+                    initialForm,
+                    field,
+                )
+            ) {
+                fieldErrors[field] = message
+            } else if (!generalError) {
+                generalError = message
+            }
+        })
+    } else if (typeof data?.detail === 'string') {
+        const message = data.detail
+
+        if (message.toLowerCase().includes('codice')) {
+            fieldErrors.codiceProxy = message
+        } else {
+            generalError = message
+        }
+    } else {
+        generalError = 'Controlla i dati inseriti'
+    }
+
+    return {
+        fieldErrors,
+        generalError,
+    }
+}
+
+
 function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
     const [proxies, setProxies] = useState([])
     const [formData, setFormData] = useState(initialForm)
@@ -36,12 +81,25 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
 
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
+    const [formError, setFormError] = useState('')
+    const [fieldErrors, setFieldErrors] = useState({})
 
     const [openMenuId, setOpenMenuId] = useState(null)
 
     const formSectionRef = useRef(null)
 
     const canManage = ['admin', 'docente'].includes(user.role)
+
+    function isDuplicateProxyCode() {
+        const codiceInserito = formData.codiceProxy
+            .trim()
+            .toLowerCase()
+
+        return proxies.some((proxy) => (
+            proxy.id !== editingId &&
+            proxy.codiceProxy.trim().toLowerCase() === codiceInserito
+        ))
+    }
 
     useEffect(() => {
         loadProxies()
@@ -102,6 +160,27 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
             ...currentForm,
             [name]: value,
         }))
+
+        setFieldErrors((currentErrors) => {
+            if (!currentErrors[name]) {
+                return currentErrors
+            }
+
+            const updatedErrors = {
+                ...currentErrors,
+            }
+
+            delete updatedErrors[name]
+
+            return updatedErrors
+        })
+
+        setFormError('')
+    }
+
+    function clearFormErrors() {
+        setFormError('')
+        setFieldErrors({})
     }
 
     function openCreateForm() {
@@ -109,6 +188,7 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
         setFormData(initialForm)
         setError('')
         setSuccess('')
+        clearFormErrors()
         setFormOpen(true)
         scrollToForm()
     }
@@ -117,6 +197,7 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
         setEditingId(null)
         setFormData(initialForm)
         setError('')
+        clearFormErrors()
         setFormOpen(false)
     }
 
@@ -142,6 +223,7 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
 
         setError('')
         setSuccess('')
+        clearFormErrors()
         setFormOpen(true)
         scrollToForm()
     }
@@ -161,6 +243,16 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
         setSaving(true)
         setError('')
         setSuccess('')
+        clearFormErrors()
+
+        const localFieldErrors = {}
+
+        if (isDuplicateProxyCode()) {
+            localFieldErrors.codiceProxy =
+                'Esiste già un proxy con questo codice'
+        }
+
+        setFieldErrors(localFieldErrors)
 
         const isEditing = editingId !== null
 
@@ -182,7 +274,14 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
             const data = await response.json()
 
             if (!response.ok) {
-                setError(getErrorMessage(data))
+                const validation = parseFormErrors(data)
+
+                setFieldErrors({
+                    ...localFieldErrors,
+                    ...validation.fieldErrors,
+                })
+
+                setFormError(validation.generalError)
                 return
             }
 
@@ -198,7 +297,7 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
 
             await loadProxies()
         } catch {
-            setError('Backend non raggiungibile')
+            setFormError('Backend non raggiungibile')
         } finally {
             setSaving(false)
         }
@@ -461,8 +560,20 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
                                     onChange={handleInputChange}
                                     placeholder="Es. LAB3"
                                     maxLength={50}
+                                    className={
+                                        fieldErrors.codiceProxy
+                                            ? 'proxy-input-error'
+                                            : ''
+                                    }
+                                    aria-invalid={Boolean(fieldErrors.codiceProxy)}
                                     required
                                 />
+
+                                {fieldErrors.codiceProxy && (
+                                    <small className="proxy-field-error">
+                                        {fieldErrors.codiceProxy}
+                                    </small>
+                                )}
                             </div>
 
                             <div className="proxy-field">
@@ -497,8 +608,21 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
                                     value={formData.indirizzoIP}
                                     onChange={handleInputChange}
                                     placeholder="Es. 192.168.1.20"
+                                    maxLength={15}
+                                    className={
+                                        fieldErrors.indirizzoIP
+                                            ? 'proxy-input-error'
+                                            : ''
+                                    }
+                                    aria-invalid={Boolean(fieldErrors.indirizzoIP)}
                                     required
                                 />
+
+                                {fieldErrors.indirizzoIP && (
+                                    <small className="proxy-field-error">
+                                        {fieldErrors.indirizzoIP}
+                                    </small>
+                                )}
                             </div>
 
                             <div className="proxy-field">
@@ -513,8 +637,21 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
                                     value={formData.subnetMask}
                                     onChange={handleInputChange}
                                     placeholder="Es. 255.255.255.0"
+                                    maxLength={15}
+                                    className={
+                                        fieldErrors.subnetMask
+                                            ? 'proxy-input-error'
+                                            : ''
+                                    }
+                                    aria-invalid={Boolean(fieldErrors.subnetMask)}
                                     required
                                 />
+
+                                {fieldErrors.subnetMask && (
+                                    <small className="proxy-field-error">
+                                        {fieldErrors.subnetMask}
+                                    </small>
+                                )}
                             </div>
 
                             <div className="proxy-form-actions">
