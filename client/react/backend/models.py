@@ -80,3 +80,23 @@ class Proxy(Base):
         String(15),
         nullable=False,
     )
+
+class Funzionalita(Base):
+    __tablename__ = "funzionalita"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    codice: Mapped[str] = mapped_column(
+        String(20),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    descrizione: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )

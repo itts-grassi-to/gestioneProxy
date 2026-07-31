@@ -654,6 +654,12 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
                                 )}
                             </div>
 
+                            {formError && (
+                                <p className="proxy-message error proxy-form-message">
+                                    {formError}
+                                </p>
+                            )}
+
                             <div className="proxy-form-actions">
                                 <button
                                     className="proxy-button secondary"

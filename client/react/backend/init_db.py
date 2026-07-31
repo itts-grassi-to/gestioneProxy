@@ -3,7 +3,7 @@ import os
 from sqlalchemy import select
 
 from database import SessionLocal
-from models import User
+from models import Funzionalita, User
 from security import hash_password
 
 
@@ -22,7 +22,10 @@ def create_initial_admin():
         )
 
         if existing_user:
-            print(f"Utente amministratore '{username}' già presente")
+            print(
+                f"Utente amministratore '{username}' già presente",
+                flush=True,
+            )
             return
 
         admin = User(
@@ -35,4 +38,41 @@ def create_initial_admin():
         database.add(admin)
         database.commit()
 
-        print(f"Utente amministratore '{username}' creato")
+        print(
+            f"Utente amministratore '{username}' creato",
+            flush=True,
+        )
+
+def create_initial_functionality():
+    """
+    Crea la funzionalità iniziale per il test del server.
+    Se esiste già, non la ricrea.
+    """
+
+    with SessionLocal() as database:
+        existing_functionality = database.scalar(
+            select(Funzionalita).where(
+                Funzionalita.codice == "00"
+            )
+        )
+
+        if existing_functionality:
+            print(
+                "Funzionalità di test già presente",
+                flush=True,
+            )
+            return
+
+        functionality = Funzionalita(
+            codice="00",
+            descrizione="Test connessione server",
+        )
+
+        database.add(functionality)
+        database.commit()
+
+        print(
+            "Funzionalità di test creata",
+            flush=True,
+        )
+

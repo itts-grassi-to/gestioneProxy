@@ -68,3 +68,41 @@ class ProxyResponse(ProxyBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class FunzionalitaBase(BaseModel):
+    codice: str = Field(
+        min_length=1,
+        max_length=20,
+    )
+
+    descrizione: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    @field_validator("codice", "descrizione")
+    @classmethod
+    def remove_outer_spaces(cls, value: str) -> str:
+        cleaned_value = value.strip()
+
+        if not cleaned_value:
+            raise ValueError(
+                "Il campo non può essere vuoto"
+            )
+
+        return cleaned_value
+
+
+class FunzionalitaCreate(FunzionalitaBase):
+    pass
+
+
+class FunzionalitaUpdate(FunzionalitaBase):
+    pass
+
+
+class FunzionalitaResponse(FunzionalitaBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
