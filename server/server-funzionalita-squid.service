@@ -1,0 +1,13 @@
+[Unit]
+Description=Server funzionalita Squid
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/gestione-proxy/server-funzionalita-squid.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

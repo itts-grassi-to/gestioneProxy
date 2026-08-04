@@ -440,3 +440,123 @@
     color: var(--features-muted);
     font-size: 14px;
 }
+
+/* Riga di gestione del servizio Squid */
+
+.features-squid-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding: 18px;
+    border: 1px solid var(--features-border);
+    border-radius: var(--features-corner);
+    background: rgb(255 255 255 / 5%);
+    transition:
+            background 160ms ease,
+            border-color 160ms ease;
+}
+
+/* Stato iniziale mentre viene effettuato il controllo */
+
+.features-squid-row.checking {
+    border-color: rgb(170 170 255 / 45%);
+    background: rgb(74 73 221 / 12%);
+}
+
+/* Squid attivo */
+
+.features-squid-row.active {
+    border-color: rgb(72 199 125 / 70%);
+    background: rgb(25 122 71 / 28%);
+}
+
+/* Squid non attivo oppure server non raggiungibile */
+
+.features-squid-row.inactive,
+.features-squid-row.error {
+    border-color: rgb(224 82 101 / 72%);
+    background: rgb(156 38 56 / 28%);
+}
+
+.features-squid-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-width: 0;
+}
+
+.features-squid-main > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.features-squid-label {
+    color: var(--features-muted);
+    font-size: 13px;
+}
+
+.features-squid-main strong {
+    font-size: 17px;
+}
+
+.features-squid-status {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+}
+
+.features-squid-row.active .features-squid-status {
+    color: #78e4a6;
+}
+
+.features-squid-row.inactive .features-squid-status,
+.features-squid-row.error .features-squid-status {
+    color: #ff9ba9;
+}
+
+.features-squid-row.checking .features-squid-status {
+    color: #c7c7ff;
+}
+
+.features-squid-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+/* Pulsante Stato */
+
+.features-button.squid-status-button {
+    border: 1px solid rgb(255 255 255 / 32%);
+    background: rgb(255 255 255 / 8%);
+}
+
+.features-button.squid-status-button:hover {
+    background: rgb(255 255 255 / 14%);
+}
+
+/* Pulsante Stop */
+
+.features-button.squid-stop-button {
+    border: 1px solid #df5065;
+    background: #9c2638;
+}
+
+.features-button.squid-stop-button:hover {
+    background: #b42c42;
+}
+
+/* Pulsante Avvia */
+
+.features-button.squid-start-button {
+    border: 1px solid #48c77d;
+    background: #197a47;
+}
+
+.features-button.squid-start-button:hover {
+    background: #208d54;
+}
