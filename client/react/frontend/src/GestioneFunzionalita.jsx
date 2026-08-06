@@ -55,6 +55,12 @@ function GestioneFunzionalita({
     const [editError, setEditError] = useState('')
     const [saving, setSaving] = useState(false)
 
+    const [squidState, setSquidState] = useState('checking')
+    const [squidMessage, setSquidMessage] = useState(
+        'Verifica dello stato di Squid...',
+    )
+    const [squidAction, setSquidAction] = useState(null)
+
     const canManage = ['admin', 'docente'].includes(user.role)
 
     const hasOpenForm =
@@ -64,11 +70,69 @@ function GestioneFunzionalita({
         startingId !== null ||
         deletingId !== null ||
         creating ||
-        saving
+        saving ||
+        squidAction !== null
 
     useEffect(() => {
         loadFunctionalities()
     }, [])
+
+    useEffect(() => {
+        if (!proxy?.id) {
+            return
+        }
+
+        let cancelled = false
+
+        async function loadInitialSquidStatus() {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid/stato`,
+                    {
+                        method: 'POST',
+                    },
+                )
+
+                const data = await response.json()
+
+                if (cancelled) {
+                    return
+                }
+
+                if (!response.ok) {
+                    setSquidState('error')
+                    setSquidMessage(getErrorMessage(data))
+                    return
+                }
+
+                setSquidState(
+                    data.active ? 'active' : 'inactive',
+                )
+
+                setSquidMessage(
+                    data.message ||
+                    (
+                        data.active
+                            ? 'Squid attivo'
+                            : 'Squid non attivo'
+                    ),
+                )
+            } catch {
+                if (!cancelled) {
+                    setSquidState('error')
+                    setSquidMessage(
+                        'Backend non raggiungibile',
+                    )
+                }
+            }
+        }
+
+        loadInitialSquidStatus()
+
+        return () => {
+            cancelled = true
+        }
+    }, [proxy?.id])
 
     useEffect(() => {
         if (!success) {
@@ -103,6 +167,71 @@ function GestioneFunzionalita({
             setError('Backend non raggiungibile')
         } finally {
             setLoading(false)
+        }
+    }
+
+    async function handleSquidAction(action) {
+        if (isBusy || hasOpenForm) {
+            return
+        }
+
+        if (
+            action !== 'stato' &&
+            !canManage
+        ) {
+            return
+        }
+
+        setSquidAction(action)
+
+        setSquidMessage(
+            action === 'stato'
+                ? 'Verifica dello stato di Squid...'
+                : action === 'avvia'
+                    ? 'Avvio di Squid in corso...'
+                    : 'Arresto di Squid in corso...',
+        )
+
+        setError('')
+        setSuccess('')
+
+        try {
+            const response = await fetch(
+                `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid/${action}`,
+                {
+                    method: 'POST',
+                },
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                setSquidState('error')
+                setSquidMessage(
+                    getErrorMessage(data),
+                )
+                return
+            }
+
+            setSquidState(
+                data.active ? 'active' : 'inactive',
+            )
+
+            setSquidMessage(
+                data.message ||
+                (
+                    data.active
+                        ? 'Squid attivo'
+                        : 'Squid non attivo'
+                ),
+            )
+        } catch {
+            setSquidState('error')
+            setSquidMessage(
+                'Backend non raggiungibile',
+            )
+        } finally {
+            setSquidAction(null)
         }
     }
 
@@ -173,25 +302,31 @@ function GestioneFunzionalita({
             const data = await response.json()
 
             if (!response.ok) {
-                setCreateError(getErrorMessage(data))
+                setCreateError(
+                    getErrorMessage(data),
+                )
                 return
             }
 
-            setFunctionalities((currentFunctionalities) =>
-                sortFunctionalities([
-                    ...currentFunctionalities,
-                    data,
-                ]),
+            setFunctionalities(
+                (currentFunctionalities) =>
+                    sortFunctionalities([
+                        ...currentFunctionalities,
+                        data,
+                    ]),
             )
 
             setCreateFormOpen(false)
             setCreateForm(EMPTY_FORM)
             setCreateError('')
+
             setSuccess(
                 'Funzionalità creata correttamente',
             )
         } catch {
-            setCreateError('Backend non raggiungibile')
+            setCreateError(
+                'Backend non raggiungibile',
+            )
         } finally {
             setCreating(false)
         }
@@ -205,10 +340,6 @@ function GestioneFunzionalita({
         const currentState =
             functionStates[functionality.id]
 
-        /*
-         * La disattivazione azzera soltanto lo stato
-         * mostrato dal frontend.
-         */
         if (currentState?.active) {
             setFunctionStates((currentStates) => ({
                 ...currentStates,
@@ -220,6 +351,7 @@ function GestioneFunzionalita({
             }))
 
             setError('')
+
             setSuccess(
                 `Funzionalità "${functionality.codice}" disattivata`,
             )
@@ -252,14 +384,16 @@ function GestioneFunzionalita({
             const data = await response.json()
 
             if (!response.ok) {
-                setFunctionStates((currentStates) => ({
-                    ...currentStates,
-                    [functionality.id]: {
-                        active: false,
-                        message: '',
-                        error: getErrorMessage(data),
-                    },
-                }))
+                setFunctionStates(
+                    (currentStates) => ({
+                        ...currentStates,
+                        [functionality.id]: {
+                            active: false,
+                            message: '',
+                            error: getErrorMessage(data),
+                        },
+                    }),
+                )
 
                 return
             }
@@ -277,14 +411,16 @@ function GestioneFunzionalita({
                 `Funzionalità "${functionality.codice}" attivata`,
             )
         } catch {
-            setFunctionStates((currentStates) => ({
-                ...currentStates,
-                [functionality.id]: {
-                    active: false,
-                    message: '',
-                    error: 'Backend non raggiungibile',
-                },
-            }))
+            setFunctionStates(
+                (currentStates) => ({
+                    ...currentStates,
+                    [functionality.id]: {
+                        active: false,
+                        message: '',
+                        error: 'Backend non raggiungibile',
+                    },
+                }),
+            )
         } finally {
             setStartingId(null)
         }
@@ -362,18 +498,22 @@ function GestioneFunzionalita({
             const data = await response.json()
 
             if (!response.ok) {
-                setEditError(getErrorMessage(data))
+                setEditError(
+                    getErrorMessage(data),
+                )
                 return
             }
 
-            setFunctionalities((currentFunctionalities) =>
-                sortFunctionalities(
-                    currentFunctionalities.map((functionality) =>
-                        functionality.id === functionalityId
-                            ? data
-                            : functionality,
+            setFunctionalities(
+                (currentFunctionalities) =>
+                    sortFunctionalities(
+                        currentFunctionalities.map(
+                            (functionality) =>
+                                functionality.id === functionalityId
+                                    ? data
+                                    : functionality,
+                        ),
                     ),
-                ),
             )
 
             setFunctionStates((currentStates) => ({
@@ -393,7 +533,9 @@ function GestioneFunzionalita({
                 'Funzionalità modificata correttamente',
             )
         } catch {
-            setEditError('Backend non raggiungibile')
+            setEditError(
+                'Backend non raggiungibile',
+            )
         } finally {
             setSaving(false)
         }
@@ -427,15 +569,19 @@ function GestioneFunzionalita({
             const data = await response.json()
 
             if (!response.ok) {
-                setError(getErrorMessage(data))
+                setError(
+                    getErrorMessage(data),
+                )
                 return
             }
 
-            setFunctionalities((currentFunctionalities) =>
-                currentFunctionalities.filter(
-                    (currentFunctionality) =>
-                        currentFunctionality.id !== functionality.id,
-                ),
+            setFunctionalities(
+                (currentFunctionalities) =>
+                    currentFunctionalities.filter(
+                        (currentFunctionality) =>
+                            currentFunctionality.id !==
+                            functionality.id,
+                    ),
             )
 
             setFunctionStates((currentStates) => {
@@ -452,7 +598,9 @@ function GestioneFunzionalita({
                 'Funzionalità eliminata correttamente',
             )
         } catch {
-            setError('Backend non raggiungibile')
+            setError(
+                'Backend non raggiungibile',
+            )
         } finally {
             setDeletingId(null)
         }
@@ -530,22 +678,30 @@ function GestioneFunzionalita({
                 <article className="features-proxy-card">
                     <div>
                         <span>Codice proxy</span>
-                        <strong>{proxy.codiceProxy}</strong>
+                        <strong>
+                            {proxy.codiceProxy}
+                        </strong>
                     </div>
 
                     <div>
                         <span>Descrizione</span>
-                        <strong>{proxy.descrizione}</strong>
+                        <strong>
+                            {proxy.descrizione}
+                        </strong>
                     </div>
 
                     <div>
                         <span>Indirizzo IP</span>
-                        <strong>{proxy.indirizzoIP}</strong>
+                        <strong>
+                            {proxy.indirizzoIP}
+                        </strong>
                     </div>
 
                     <div>
                         <span>Subnet mask</span>
-                        <strong>{proxy.subnetMask}</strong>
+                        <strong>
+                            {proxy.subnetMask}
+                        </strong>
                     </div>
                 </article>
             </section>
@@ -553,7 +709,9 @@ function GestioneFunzionalita({
             <section className="features-functions-section">
                 <div className="features-functions-header">
                     <div>
-                        <h2>Funzionalità disponibili</h2>
+                        <h2>
+                            Funzionalità disponibili
+                        </h2>
 
                         <p>
                             Funzionalità applicabili al proxy selezionato.
@@ -605,10 +763,86 @@ function GestioneFunzionalita({
                     </p>
                 )}
 
+                <article
+                    className={
+                        `features-squid-row ${squidState}`
+                    }
+                >
+                    <div className="features-squid-main">
+                        <div>
+                            <span className="features-squid-label">
+                                Servizio Squid
+                            </span>
+
+                            <strong>
+                                Squid Proxy Server
+                            </strong>
+                        </div>
+
+                        <p className="features-squid-status">
+                            {squidMessage}
+                        </p>
+                    </div>
+
+                    <div className="features-squid-actions">
+                        <button
+                            className="features-button squid-status-button"
+                            type="button"
+                            onClick={() =>
+                                handleSquidAction('stato')
+                            }
+                            disabled={
+                                isBusy ||
+                                hasOpenForm
+                            }
+                        >
+                            {squidAction === 'stato'
+                                ? 'Controllo...'
+                                : 'Stato'}
+                        </button>
+
+                        <button
+                            className="features-button squid-stop-button"
+                            type="button"
+                            onClick={() =>
+                                handleSquidAction('stop')
+                            }
+                            disabled={
+                                !canManage ||
+                                isBusy ||
+                                hasOpenForm
+                            }
+                        >
+                            {squidAction === 'stop'
+                                ? 'Stop...'
+                                : 'Stop'}
+                        </button>
+
+                        <button
+                            className="features-button squid-start-button"
+                            type="button"
+                            onClick={() =>
+                                handleSquidAction('avvia')
+                            }
+                            disabled={
+                                !canManage ||
+                                isBusy ||
+                                hasOpenForm
+                            }
+                        >
+                            {squidAction === 'avvia'
+                                ? 'Avvio...'
+                                : 'Avvia'}
+                        </button>
+                    </div>
+                </article>
+
                 {createFormOpen && (
                     <div className="features-create-form">
                         <div className="features-form-heading">
-                            <h3>Nuova funzionalità</h3>
+                            <h3>
+                                Nuova funzionalità
+                            </h3>
 
                             <p>
                                 Inserisci il codice del comando e una descrizione.
@@ -687,194 +921,216 @@ function GestioneFunzionalita({
                     </div>
                 ) : (
                     <div className="features-functions-list">
-                        {functionalities.map((functionality) => {
-                            const state =
-                                functionStates[functionality.id]
+                        {functionalities.map(
+                            (functionality) => {
+                                const state =
+                                    functionStates[
+                                        functionality.id
+                                        ]
 
-                            const isActive =
-                                state?.active === true
+                                const isActive =
+                                    state?.active === true
 
-                            const isStarting =
-                                startingId === functionality.id
+                                const isStarting =
+                                    startingId ===
+                                    functionality.id
 
-                            const isDeleting =
-                                deletingId === functionality.id
+                                const isDeleting =
+                                    deletingId ===
+                                    functionality.id
 
-                            const isEditing =
-                                editingId === functionality.id
+                                const isEditing =
+                                    editingId ===
+                                    functionality.id
 
-                            return (
-                                <article
-                                    className="features-function-card"
-                                    key={functionality.id}
-                                >
-                                    <div className="features-function-main">
-                                        <span className="features-function-code">
-                                            {functionality.codice}
-                                        </span>
+                                return (
+                                    <article
+                                        className="features-function-card"
+                                        key={functionality.id}
+                                    >
+                                        <div className="features-function-main">
+                                            <span className="features-function-code">
+                                                {functionality.codice}
+                                            </span>
 
-                                        <div className="features-function-description">
-                                            <span>Descrizione</span>
+                                            <div className="features-function-description">
+                                                <span>
+                                                    Descrizione
+                                                </span>
 
-                                            <strong>
-                                                {functionality.descrizione}
-                                            </strong>
+                                                <strong>
+                                                    {functionality.descrizione}
+                                                </strong>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {canManage && (
-                                        <div className="features-function-actions">
-                                            <button
-                                                className={
-                                                    `features-button start-button ` +
-                                                    (
-                                                        isActive
-                                                            ? 'active'
-                                                            : 'inactive'
-                                                    )
-                                                }
-                                                type="button"
-                                                onClick={() =>
-                                                    handleToggle(
-                                                        functionality,
-                                                    )
-                                                }
-                                                disabled={
-                                                    isBusy ||
-                                                    hasOpenForm
-                                                }
-                                            >
-                                                {isStarting
-                                                    ? 'Avvio...'
-                                                    : isActive
-                                                        ? 'Disattiva'
-                                                        : 'Avvia'}
-                                            </button>
-
-                                            <button
-                                                className="features-button secondary"
-                                                type="button"
-                                                onClick={() =>
-                                                    openEditForm(
-                                                        functionality,
-                                                    )
-                                                }
-                                                disabled={
-                                                    isBusy ||
-                                                    hasOpenForm
-                                                }
-                                            >
-                                                Modifica
-                                            </button>
-
-                                            <button
-                                                className="features-button danger"
-                                                type="button"
-                                                onClick={() =>
-                                                    handleDelete(
-                                                        functionality,
-                                                    )
-                                                }
-                                                disabled={
-                                                    isBusy ||
-                                                    hasOpenForm
-                                                }
-                                            >
-                                                {isDeleting
-                                                    ? 'Eliminazione...'
-                                                    : 'Elimina'}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {state?.message && (
-                                        <p className="features-function-result success">
-                                            {state.message}
-                                        </p>
-                                    )}
-
-                                    {state?.error && (
-                                        <p className="features-function-result error">
-                                            {state.error}
-                                        </p>
-                                    )}
-
-                                    {isEditing && (
-                                        <div className="features-edit-form">
-                                            <label>
-                                                Codice
-
-                                                <input
-                                                    name="codice"
-                                                    type="text"
-                                                    value={editForm.codice}
-                                                    onChange={handleEditChange}
-                                                    maxLength={20}
-                                                    required
-                                                />
-                                            </label>
-
-                                            <label>
-                                                Descrizione
-
-                                                <input
-                                                    name="descrizione"
-                                                    type="text"
-                                                    value={editForm.descrizione}
-                                                    onChange={handleEditChange}
-                                                    maxLength={255}
-                                                    required
-                                                />
-                                            </label>
-
-                                            {editError && (
-                                                <p className="features-form-error">
-                                                    {editError}
-                                                </p>
-                                            )}
-
-                                            <div className="features-edit-actions">
+                                        {canManage && (
+                                            <div className="features-function-actions">
                                                 <button
-                                                    className="features-button secondary"
-                                                    type="button"
-                                                    onClick={closeEditForm}
-                                                    disabled={saving}
-                                                >
-                                                    Annulla
-                                                </button>
-
-                                                <button
-                                                    className="features-button primary"
+                                                    className={
+                                                        `features-button start-button ` +
+                                                        (
+                                                            isActive
+                                                                ? 'active'
+                                                                : 'inactive'
+                                                        )
+                                                    }
                                                     type="button"
                                                     onClick={() =>
-                                                        handleSave(
-                                                            functionality.id,
+                                                        handleToggle(
+                                                            functionality,
                                                         )
                                                     }
                                                     disabled={
-                                                        saving ||
-                                                        !editForm.codice.trim() ||
-                                                        !editForm.descrizione.trim()
+                                                        isBusy ||
+                                                        hasOpenForm
                                                     }
                                                 >
-                                                    {saving
-                                                        ? 'Salvataggio...'
-                                                        : 'Salva'}
+                                                    {isStarting
+                                                        ? 'Avvio...'
+                                                        : isActive
+                                                            ? 'Disattiva'
+                                                            : 'Avvia'}
+                                                </button>
+
+                                                <button
+                                                    className="features-button secondary"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openEditForm(
+                                                            functionality,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        isBusy ||
+                                                        hasOpenForm
+                                                    }
+                                                >
+                                                    Modifica
+                                                </button>
+
+                                                <button
+                                                    className="features-button danger"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDelete(
+                                                            functionality,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        isBusy ||
+                                                        hasOpenForm
+                                                    }
+                                                >
+                                                    {isDeleting
+                                                        ? 'Eliminazione...'
+                                                        : 'Elimina'}
                                                 </button>
                                             </div>
-                                        </div>
-                                    )}
-                                </article>
-                            )
-                        })}
+                                        )}
+
+                                        {state?.message && (
+                                            <p className="features-function-result success">
+                                                {state.message}
+                                            </p>
+                                        )}
+
+                                        {state?.error && (
+                                            <p className="features-function-result error">
+                                                {state.error}
+                                            </p>
+                                        )}
+
+                                        {isEditing && (
+                                            <div className="features-edit-form">
+                                                <label>
+                                                    Codice
+
+                                                    <input
+                                                        name="codice"
+                                                        type="text"
+                                                        value={
+                                                            editForm.codice
+                                                        }
+                                                        onChange={
+                                                            handleEditChange
+                                                        }
+                                                        maxLength={20}
+                                                        required
+                                                    />
+                                                </label>
+
+                                                <label>
+                                                    Descrizione
+
+                                                    <input
+                                                        name="descrizione"
+                                                        type="text"
+                                                        value={
+                                                            editForm.descrizione
+                                                        }
+                                                        onChange={
+                                                            handleEditChange
+                                                        }
+                                                        maxLength={255}
+                                                        required
+                                                    />
+                                                </label>
+
+                                                {editError && (
+                                                    <p className="features-form-error">
+                                                        {editError}
+                                                    </p>
+                                                )}
+
+                                                <div className="features-edit-actions">
+                                                    <button
+                                                        className="features-button secondary"
+                                                        type="button"
+                                                        onClick={
+                                                            closeEditForm
+                                                        }
+                                                        disabled={
+                                                            saving
+                                                        }
+                                                    >
+                                                        Annulla
+                                                    </button>
+
+                                                    <button
+                                                        className="features-button primary"
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleSave(
+                                                                functionality.id,
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            saving ||
+                                                            !editForm.codice.trim() ||
+                                                            !editForm.descrizione.trim()
+                                                        }
+                                                    >
+                                                        {saving
+                                                            ? 'Salvataggio...'
+                                                            : 'Salva'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </article>
+                                )
+                            },
+                        )}
                     </div>
                 )}
 
                 {!canManage && (
                     <p className="features-read-only">
-                        Modalità sola lettura: il ruolo ospite non può
-                        creare, avviare, modificare o eliminare le
-                        funzionalità.
+                        Modalità sola lettura: il ruolo ospite può
+                        controllare lo stato di Squid, ma non può
+                        creare, avviare, fermare, modificare o
+                        eliminare le funzionalità.
                     </p>
                 )}
             </section>

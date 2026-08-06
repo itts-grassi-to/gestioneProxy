@@ -26,6 +26,82 @@ router = APIRouter(
 )
 
 
+SQUID_STATUS_CODE = "05"
+SQUID_START_CODE = "06"
+SQUID_STOP_CODE = "07"
+
+SQUID_STATUS_TIMEOUT = 5
+SQUID_OPERATION_TIMEOUT = 45
+
+
+def get_proxy_or_404(
+        proxy_id: int,
+        database: Session,
+) -> Proxy:
+    proxy = database.get(
+        Proxy,
+        proxy_id,
+    )
+
+    if proxy is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Proxy non trovato",
+        )
+
+    return proxy
+
+
+def send_squid_command(
+        proxy: Proxy,
+        code: str,
+        timeout: float,
+) -> str:
+    try:
+        return send_command(
+            host=proxy.indirizzoIP,
+            code=code,
+            timeout=timeout,
+        )
+
+    except MotoreNonAttivoError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Server funzionalità Squid "
+                "non raggiungibile"
+            ),
+        ) from error
+
+
+def create_squid_response(
+        response_code: str,
+):
+    if response_code == "OK":
+        return {
+            "success": True,
+            "active": True,
+            "status": "OK",
+            "message": "Squid attivo",
+        }
+
+    if response_code == "NOK":
+        return {
+            "success": True,
+            "active": False,
+            "status": "NOK",
+            "message": "Squid non attivo",
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail=(
+            "Il server funzionalità Squid ha restituito "
+            f"una risposta non valida: {response_code}"
+        ),
+    )
+
+
 @router.get(
     "",
     response_model=list[FunzionalitaResponse],
@@ -170,22 +246,17 @@ def start_functionality(
             detail="Funzionalità non trovata",
         )
 
-    proxy = database.get(
-        Proxy,
+    proxy = get_proxy_or_404(
         proxy_id,
+        database,
     )
-
-    if proxy is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proxy non trovato",
-        )
 
     try:
         response_code = send_command(
             host=proxy.indirizzoIP,
             code=functionality.codice,
         )
+
     except MotoreNonAttivoError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -207,3 +278,72 @@ def start_functionality(
         "message": "OK",
         "responseCode": response_code,
     }
+
+
+@router.post(
+    "/proxy/{proxy_id}/squid/stato",
+)
+def squid_status(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_STATUS_CODE,
+        timeout=SQUID_STATUS_TIMEOUT,
+    )
+
+    return create_squid_response(
+        response_code
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/squid/avvia",
+)
+def squid_start(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_START_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+
+    return create_squid_response(
+        response_code
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/squid/stop",
+)
+def squid_stop(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_STOP_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+
+    return create_squid_response(
+        response_code
+    )
