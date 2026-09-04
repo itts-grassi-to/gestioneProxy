@@ -29,9 +29,12 @@ router = APIRouter(
 SQUID_STATUS_CODE = "05"
 SQUID_START_CODE = "06"
 SQUID_STOP_CODE = "07"
+FAD_CODE = "08"
+CISCO_CODE = "09"
 
 SQUID_STATUS_TIMEOUT = 5
 SQUID_OPERATION_TIMEOUT = 45
+SCRIPT_FUNCTIONALITY_TIMEOUT = 5
 
 
 def get_proxy_or_404(
@@ -99,6 +102,85 @@ def create_squid_response(
             "Il server funzionalità Squid ha restituito "
             f"una risposta non valida: {response_code}"
         ),
+    )
+
+
+def send_script_functionality_command(
+        proxy: Proxy,
+        code: str,
+        action: str,
+) -> str:
+    try:
+        return send_command(
+            host=proxy.indirizzoIP,
+            code=code,
+            parameter=action,
+            timeout=SCRIPT_FUNCTIONALITY_TIMEOUT,
+        )
+
+    except MotoreNonAttivoError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Server funzionalità "
+                "non raggiungibile"
+            ),
+        ) from error
+
+
+def create_script_functionality_response(
+        response_code: str,
+        active_message: str,
+        inactive_message: str,
+):
+    if response_code == "OK":
+        return {
+            "success": True,
+            "active": True,
+            "status": "OK",
+            "message": active_message,
+        }
+
+    if response_code == "NOK":
+        return {
+            "success": True,
+            "active": False,
+            "status": "NOK",
+            "message": inactive_message,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail=(
+            "Il server funzionalità ha restituito "
+            f"una risposta non valida: {response_code}"
+        ),
+    )
+
+
+def execute_script_functionality_action(
+        proxy_id: int,
+        code: str,
+        action: str,
+        active_message: str,
+        inactive_message: str,
+        database: Session,
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_script_functionality_command(
+        proxy=proxy,
+        code=code,
+        action=action,
+    )
+
+    return create_script_functionality_response(
+        response_code=response_code,
+        active_message=active_message,
+        inactive_message=inactive_message,
     )
 
 
@@ -346,4 +428,106 @@ def squid_stop(
 
     return create_squid_response(
         response_code
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/fad/stato",
+)
+def fad_status(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=FAD_CODE,
+        action="status",
+        active_message="FAD avviata",
+        inactive_message="FAD non avviata",
+        database=database,
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/fad/avvia",
+)
+def fad_start(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=FAD_CODE,
+        action="start",
+        active_message="FAD avviata",
+        inactive_message="FAD non avviata",
+        database=database,
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/fad/stop",
+)
+def fad_stop(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=FAD_CODE,
+        action="stop",
+        active_message="FAD avviata",
+        inactive_message="FAD non avviata",
+        database=database,
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/cisco/stato",
+)
+def cisco_status(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=CISCO_CODE,
+        action="status",
+        active_message="Piattaforma Cisco avviata",
+        inactive_message="Piattaforma Cisco non avviata",
+        database=database,
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/cisco/avvia",
+)
+def cisco_start(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=CISCO_CODE,
+        action="start",
+        active_message="Piattaforma Cisco avviata",
+        inactive_message="Piattaforma Cisco non avviata",
+        database=database,
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/cisco/stop",
+)
+def cisco_stop(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    return execute_script_functionality_action(
+        proxy_id=proxy_id,
+        code=CISCO_CODE,
+        action="stop",
+        active_message="Piattaforma Cisco avviata",
+        inactive_message="Piattaforma Cisco non avviata",
+        database=database,
     )

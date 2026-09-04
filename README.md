@@ -1,9 +1,10 @@
 # gestioneProxy
-La gestione deve provvedere ad attivare e disattivare i filtri (white e black list) del proxy (squid) senza che l’operatore che esegue l’operazione debba conoscere le password di root del server che ospita squid. Per far questo si dovranno costruire i seguenti programmi.
 
-Motore Interfaccia di gestione Il progetto dovrà essere sviluppato in locale e messo in produzione in una macchina Debian sul server della scuola. Essenziale la condivisione del codice su piattaforma GitHub
+La gestione deve provvedere ad attivare e disattivare i filtri (white e black list) del proxy (Squid) senza che l’operatore che esegue l’operazione debba conoscere le password di root del server che ospita Squid. Per far questo si dovranno costruire i seguenti programmi.
 
-MOTORE (server) Il motore deve essere un server python in ascolto sulla porta 9000. Riceverà dei codici che serviranno ad installare gli script per attivare le varie blacklist. CLIENT Si dovrà creare una docker con front-end React. Il front-end dovrà contenere le pagine sia per la gestione utenti, sia per la gestione delle whitelist Squid.
+Motore Interfaccia di gestione Il progetto dovrà essere sviluppato in locale e messo in produzione in una macchina Debian sul server della scuola. Essenziale la condivisione del codice su piattaforma GitHub.
+
+MOTORE (server) Il motore deve essere un server Python in ascolto sulla porta 9000. Riceverà dei codici per eseguire le funzionalità disponibili. CLIENT Si dovrà creare una Docker con frontend React. Il frontend dovrà contenere le pagine per la gestione degli utenti e delle funzionalità del proxy.
 
 Lavoro del team GP
 
@@ -23,12 +24,14 @@ Backend FastAPI
       v
 server-funzionalita-squid
       |
-      v
-systemd
-      |
-      v
-squid.service
+      |-----------------------|
+      v                       v
+systemd                 script FAD/Cisco
+      |                       |
+      v                       v
+squid.service            file status.txt
 ```
+
 ---
 
 ## Ruoli
@@ -47,7 +50,6 @@ Attualmente sono implementati:
 - collegamento del backend a PostgreSQL.
 
 ---
-
 
 # Gestione proxy
 
@@ -164,16 +166,19 @@ Creare la directory utilizzata dal server:
 sudo mkdir -p /opt/gestione-proxy
 ```
 
-Copiare il file Python:
+Copiare il server e gli script delle funzionalità:
 
 ```bash
 sudo cp server/server-funzionalita-squid.py /opt/gestione-proxy/
+sudo cp -r server/fad server/cisco /opt/gestione-proxy/
 ```
 
-Il file sarà quindi disponibile in:
+I file saranno quindi disponibili in:
 
 ```text
 /opt/gestione-proxy/server-funzionalita-squid.py
+/opt/gestione-proxy/fad/
+/opt/gestione-proxy/cisco/
 ```
 
 Copiare il file systemd:
@@ -303,14 +308,16 @@ Il server utilizza attualmente i seguenti codici:
 05 -> stato Squid
 06 -> avvio Squid
 07 -> stop Squid
+08 -> gestione FAD tramite status, start e stop
+09 -> gestione Cisco tramite status, start e stop
 ```
 
 Le principali risposte sono:
 
 ```text
 50  -> test connessione riuscito
-OK  -> Squid attivo
-NOK -> Squid non attivo
+OK  -> funzionalità attiva
+NOK -> funzionalità non attiva
 90  -> comando non riconosciuto
 99  -> errore durante l'esecuzione
 ```
@@ -532,3 +539,18 @@ Il server restituisce la risposta solamente quando Squid ha realmente terminato 
 Il pulsante `Avvia` richiede l'avvio di Squid.
 
 Il server attende che il servizio raggiunga realmente lo stato `active` prima di restituire `OK`.
+
+---
+
+# Gestione FAD e Cisco
+
+Il frontend permette di controllare FAD e Cisco tramite i pulsanti `Stato`, `Stop` e `Avvia`.
+
+Il backend invia al server i codici `08` per FAD e `09` per Cisco, accompagnati dai parametri `status`, `start` o `stop`.
+
+Ogni funzionalità salva il proprio stato in un file `status.txt` separato:
+
+```text
+1 -> avviata -> OK -> riga verde
+0 -> non avviata -> NOK -> riga rossa
+```

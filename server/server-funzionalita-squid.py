@@ -1,5 +1,7 @@
+import os
 import socket
 import subprocess
+import sys
 import time
 
 
@@ -10,15 +12,39 @@ CODE_TEST = "00"
 CODE_SQUID_STATUS = "05"
 CODE_SQUID_START = "06"
 CODE_SQUID_STOP = "07"
+CODE_FAD = "08"
+CODE_CISCO = "09"
 
 RESPONSE_TEST_OK = "50"
-RESPONSE_SQUID_OK = "OK"
-RESPONSE_SQUID_NOK = "NOK"
+RESPONSE_OK = "OK"
+RESPONSE_NOK = "NOK"
 RESPONSE_UNKNOWN_COMMAND = "90"
 RESPONSE_ERROR = "99"
 
 SQUID_OPERATION_TIMEOUT = 45
 SQUID_CHECK_INTERVAL = 0.5
+SCRIPT_TIMEOUT = 5
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+FUNCTIONALITY_SCRIPTS = {
+    CODE_FAD: os.path.join(
+        BASE_DIR,
+        "fad",
+        "fad.py",
+    ),
+    CODE_CISCO: os.path.join(
+        BASE_DIR,
+        "cisco",
+        "cisco.py",
+    ),
+}
+
+SCRIPT_COMMANDS = {
+    "status",
+    "start",
+    "stop",
+}
 
 
 def get_squid_state():
@@ -68,7 +94,7 @@ def is_squid_active():
 
 
 def wait_for_squid_start(
-    timeout=SQUID_OPERATION_TIMEOUT,
+        timeout=SQUID_OPERATION_TIMEOUT,
 ):
     """
     Attende che Squid raggiunga realmente
@@ -78,8 +104,8 @@ def wait_for_squid_start(
     start_time = time.monotonic()
 
     while (
-        time.monotonic() - start_time
-        < timeout
+            time.monotonic() - start_time
+            < timeout
     ):
         squid_state = get_squid_state()
 
@@ -95,7 +121,7 @@ def wait_for_squid_start(
 
 
 def wait_for_squid_stop(
-    timeout=SQUID_OPERATION_TIMEOUT,
+        timeout=SQUID_OPERATION_TIMEOUT,
 ):
     """
     Attende che Squid abbia realmente
@@ -108,8 +134,8 @@ def wait_for_squid_stop(
     start_time = time.monotonic()
 
     while (
-        time.monotonic() - start_time
-        < timeout
+            time.monotonic() - start_time
+            < timeout
     ):
         squid_state = get_squid_state()
 
@@ -186,7 +212,82 @@ def stop_squid():
     return wait_for_squid_stop()
 
 
-def handle_command(code):
+def run_functionality_script(
+        code,
+        parameter,
+):
+    """
+    Esegue lo script associato alla funzionalita
+    e restituisce la sua risposta.
+    """
+
+    script_path = FUNCTIONALITY_SCRIPTS[code]
+
+    if parameter not in SCRIPT_COMMANDS:
+        return RESPONSE_UNKNOWN_COMMAND
+
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                script_path,
+                parameter,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=SCRIPT_TIMEOUT,
+            check=False,
+        )
+
+    except subprocess.TimeoutExpired:
+        print(
+            f"Timeout durante l'esecuzione di {script_path}",
+            flush=True,
+        )
+        return RESPONSE_ERROR
+
+    except OSError as error:
+        print(
+            f"Impossibile eseguire {script_path}: {error}",
+            flush=True,
+        )
+        return RESPONSE_ERROR
+
+    response = result.stdout.strip().upper()
+
+    if result.stderr.strip():
+        print(
+            f"Errore script {script_path}: "
+            f"{result.stderr.strip()}",
+            flush=True,
+        )
+
+    if result.returncode != 0:
+        print(
+            f"Lo script {script_path} e terminato "
+            f"con codice {result.returncode}",
+            flush=True,
+        )
+        return RESPONSE_ERROR
+
+    if response not in {
+        RESPONSE_OK,
+        RESPONSE_NOK,
+    }:
+        print(
+            f"Risposta non valida dello script "
+            f"{script_path}: {response}",
+            flush=True,
+        )
+        return RESPONSE_ERROR
+
+    return response
+
+
+def handle_command(
+        code,
+        parameter=None,
+):
     """
     Gestisce i codici ricevuti dal backend.
     """
@@ -196,23 +297,23 @@ def handle_command(code):
 
     if code == CODE_SQUID_STATUS:
         if is_squid_active():
-            return RESPONSE_SQUID_OK
+            return RESPONSE_OK
 
-        return RESPONSE_SQUID_NOK
+        return RESPONSE_NOK
 
     if code == CODE_SQUID_START:
         start_completed = start_squid()
 
         if start_completed:
-            return RESPONSE_SQUID_OK
+            return RESPONSE_OK
 
-        return RESPONSE_SQUID_NOK
+        return RESPONSE_NOK
 
     if code == CODE_SQUID_STOP:
         stop_completed = stop_squid()
 
         if stop_completed:
-            return RESPONSE_SQUID_NOK
+            return RESPONSE_NOK
 
         print(
             "Timeout: impossibile confermare "
@@ -221,6 +322,12 @@ def handle_command(code):
         )
 
         return RESPONSE_ERROR
+
+    if code in FUNCTIONALITY_SCRIPTS:
+        return run_functionality_script(
+            code,
+            parameter,
+        )
 
     return RESPONSE_UNKNOWN_COMMAND
 
@@ -275,7 +382,10 @@ def handle_client(connection, address):
             flush=True,
         )
 
-        response = handle_command(code)
+        response = handle_command(
+            code,
+            parameter,
+        )
 
     except Exception as error:
         print(
@@ -298,8 +408,8 @@ def handle_client(connection, address):
 
 def start_server():
     with socket.socket(
-        socket.AF_INET,
-        socket.SOCK_STREAM,
+            socket.AF_INET,
+            socket.SOCK_STREAM,
     ) as server:
         server.setsockopt(
             socket.SOL_SOCKET,

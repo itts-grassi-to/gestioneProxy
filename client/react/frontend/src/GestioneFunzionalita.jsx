@@ -9,6 +9,51 @@ const EMPTY_FORM = {
     descrizione: '',
 }
 
+const MANAGED_FUNCTIONALITIES = [
+    {
+        key: 'squid',
+        label: 'Servizio Squid',
+        description: 'Squid Proxy Server',
+        checkingMessage: 'Verifica dello stato di Squid...',
+        startingMessage: 'Avvio di Squid in corso...',
+        stoppingMessage: 'Arresto di Squid in corso...',
+        activeMessage: 'Squid attivo',
+        inactiveMessage: 'Squid non attivo',
+    },
+    {
+        key: 'fad',
+        label: 'Funzionalità FAD',
+        description: 'FAD',
+        checkingMessage: 'Verifica dello stato della FAD...',
+        startingMessage: 'Avvio della FAD in corso...',
+        stoppingMessage: 'Arresto della FAD in corso...',
+        activeMessage: 'FAD avviata',
+        inactiveMessage: 'FAD non avviata',
+    },
+    {
+        key: 'cisco',
+        label: 'Piattaforma Cisco',
+        description: 'Cisco',
+        checkingMessage: 'Verifica dello stato di Cisco...',
+        startingMessage: 'Avvio della piattaforma Cisco in corso...',
+        stoppingMessage: 'Arresto della piattaforma Cisco in corso...',
+        activeMessage: 'Piattaforma Cisco avviata',
+        inactiveMessage: 'Piattaforma Cisco non avviata',
+    },
+]
+
+function createInitialManagedStates() {
+    return Object.fromEntries(
+        MANAGED_FUNCTIONALITIES.map((functionality) => [
+            functionality.key,
+            {
+                status: 'checking',
+                message: functionality.checkingMessage,
+            },
+        ]),
+    )
+}
+
 function getErrorMessage(data) {
     if (typeof data?.detail === 'string') {
         return data.detail
@@ -55,11 +100,10 @@ function GestioneFunzionalita({
     const [editError, setEditError] = useState('')
     const [saving, setSaving] = useState(false)
 
-    const [squidState, setSquidState] = useState('checking')
-    const [squidMessage, setSquidMessage] = useState(
-        'Verifica dello stato di Squid...',
+    const [managedStates, setManagedStates] = useState(
+        createInitialManagedStates,
     )
-    const [squidAction, setSquidAction] = useState(null)
+    const [managedAction, setManagedAction] = useState(null)
 
     const canManage = ['admin', 'docente'].includes(user.role)
 
@@ -71,7 +115,7 @@ function GestioneFunzionalita({
         deletingId !== null ||
         creating ||
         saving ||
-        squidAction !== null
+        managedAction !== null
 
     useEffect(() => {
         loadFunctionalities()
@@ -84,10 +128,11 @@ function GestioneFunzionalita({
 
         let cancelled = false
 
-        async function loadInitialSquidStatus() {
+        async function loadInitialManagedStatus(functionality) {
             try {
                 const response = await fetch(
-                    `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid/stato`,
+                    `${API_URL}/api/funzionalita/proxy/${proxy.id}` +
+                    `/${functionality.key}/stato`,
                     {
                         method: 'POST',
                     },
@@ -100,34 +145,45 @@ function GestioneFunzionalita({
                 }
 
                 if (!response.ok) {
-                    setSquidState('error')
-                    setSquidMessage(getErrorMessage(data))
+                    setManagedStates((currentStates) => ({
+                        ...currentStates,
+                        [functionality.key]: {
+                            status: 'error',
+                            message: getErrorMessage(data),
+                        },
+                    }))
                     return
                 }
 
-                setSquidState(
-                    data.active ? 'active' : 'inactive',
-                )
-
-                setSquidMessage(
-                    data.message ||
-                    (
-                        data.active
-                            ? 'Squid attivo'
-                            : 'Squid non attivo'
-                    ),
-                )
+                setManagedStates((currentStates) => ({
+                    ...currentStates,
+                    [functionality.key]: {
+                        status: data.active
+                            ? 'active'
+                            : 'inactive',
+                        message: data.message || (
+                            data.active
+                                ? functionality.activeMessage
+                                : functionality.inactiveMessage
+                        ),
+                    },
+                }))
             } catch {
                 if (!cancelled) {
-                    setSquidState('error')
-                    setSquidMessage(
-                        'Backend non raggiungibile',
-                    )
+                    setManagedStates((currentStates) => ({
+                        ...currentStates,
+                        [functionality.key]: {
+                            status: 'error',
+                            message: 'Backend non raggiungibile',
+                        },
+                    }))
                 }
             }
         }
 
-        loadInitialSquidStatus()
+        MANAGED_FUNCTIONALITIES.forEach(
+            loadInitialManagedStatus,
+        )
 
         return () => {
             cancelled = true
@@ -170,7 +226,10 @@ function GestioneFunzionalita({
         }
     }
 
-    async function handleSquidAction(action) {
+    async function handleManagedAction(
+        functionality,
+        action,
+    ) {
         if (isBusy || hasOpenForm) {
             return
         }
@@ -182,22 +241,30 @@ function GestioneFunzionalita({
             return
         }
 
-        setSquidAction(action)
+        setManagedAction({
+            key: functionality.key,
+            action,
+        })
 
-        setSquidMessage(
-            action === 'stato'
-                ? 'Verifica dello stato di Squid...'
-                : action === 'avvia'
-                    ? 'Avvio di Squid in corso...'
-                    : 'Arresto di Squid in corso...',
-        )
+        setManagedStates((currentStates) => ({
+            ...currentStates,
+            [functionality.key]: {
+                status: 'checking',
+                message: action === 'stato'
+                    ? functionality.checkingMessage
+                    : action === 'avvia'
+                        ? functionality.startingMessage
+                        : functionality.stoppingMessage,
+            },
+        }))
 
         setError('')
         setSuccess('')
 
         try {
             const response = await fetch(
-                `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid/${action}`,
+                `${API_URL}/api/funzionalita/proxy/${proxy.id}` +
+                `/${functionality.key}/${action}`,
                 {
                     method: 'POST',
                 },
@@ -206,32 +273,39 @@ function GestioneFunzionalita({
             const data = await response.json()
 
             if (!response.ok) {
-                setSquidState('error')
-                setSquidMessage(
-                    getErrorMessage(data),
-                )
+                setManagedStates((currentStates) => ({
+                    ...currentStates,
+                    [functionality.key]: {
+                        status: 'error',
+                        message: getErrorMessage(data),
+                    },
+                }))
                 return
             }
 
-            setSquidState(
-                data.active ? 'active' : 'inactive',
-            )
-
-            setSquidMessage(
-                data.message ||
-                (
-                    data.active
-                        ? 'Squid attivo'
-                        : 'Squid non attivo'
-                ),
-            )
+            setManagedStates((currentStates) => ({
+                ...currentStates,
+                [functionality.key]: {
+                    status: data.active
+                        ? 'active'
+                        : 'inactive',
+                    message: data.message || (
+                        data.active
+                            ? functionality.activeMessage
+                            : functionality.inactiveMessage
+                    ),
+                },
+            }))
         } catch {
-            setSquidState('error')
-            setSquidMessage(
-                'Backend non raggiungibile',
-            )
+            setManagedStates((currentStates) => ({
+                ...currentStates,
+                [functionality.key]: {
+                    status: 'error',
+                    message: 'Backend non raggiungibile',
+                },
+            }))
         } finally {
-            setSquidAction(null)
+            setManagedAction(null)
         }
     }
 
@@ -763,79 +837,109 @@ function GestioneFunzionalita({
                     </p>
                 )}
 
-                <article
-                    className={
-                        `features-squid-row ${squidState}`
-                    }
-                >
-                    <div className="features-squid-main">
-                        <div>
-                            <span className="features-squid-label">
-                                Servizio Squid
-                            </span>
+                <div className="features-managed-list">
+                    {MANAGED_FUNCTIONALITIES.map(
+                        (functionality) => {
+                            const currentState =
+                                managedStates[functionality.key]
 
-                            <strong>
-                                Squid Proxy Server
-                            </strong>
-                        </div>
+                            const currentAction =
+                                managedAction?.key === functionality.key
+                                    ? managedAction.action
+                                    : null
 
-                        <p className="features-squid-status">
-                            {squidMessage}
-                        </p>
-                    </div>
+                            return (
+                                <article
+                                    className={
+                                        `features-managed-row ` +
+                                        `${currentState.status}`
+                                    }
+                                    key={functionality.key}
+                                >
+                                    <div className="features-managed-main">
+                                        <div>
+                                            <span className="features-managed-label">
+                                                {functionality.label}
+                                            </span>
 
-                    <div className="features-squid-actions">
-                        <button
-                            className="features-button squid-status-button"
-                            type="button"
-                            onClick={() =>
-                                handleSquidAction('stato')
-                            }
-                            disabled={
-                                isBusy ||
-                                hasOpenForm
-                            }
-                        >
-                            {squidAction === 'stato'
-                                ? 'Controllo...'
-                                : 'Stato'}
-                        </button>
+                                            <strong>
+                                                {functionality.description}
+                                            </strong>
+                                        </div>
 
-                        <button
-                            className="features-button squid-stop-button"
-                            type="button"
-                            onClick={() =>
-                                handleSquidAction('stop')
-                            }
-                            disabled={
-                                !canManage ||
-                                isBusy ||
-                                hasOpenForm
-                            }
-                        >
-                            {squidAction === 'stop'
-                                ? 'Stop...'
-                                : 'Stop'}
-                        </button>
+                                        <p className="features-managed-status">
+                                            {currentState.message}
+                                        </p>
+                                    </div>
 
-                        <button
-                            className="features-button squid-start-button"
-                            type="button"
-                            onClick={() =>
-                                handleSquidAction('avvia')
-                            }
-                            disabled={
-                                !canManage ||
-                                isBusy ||
-                                hasOpenForm
-                            }
-                        >
-                            {squidAction === 'avvia'
-                                ? 'Avvio...'
-                                : 'Avvia'}
-                        </button>
-                    </div>
-                </article>
+                                    <div className="features-managed-actions">
+                                        <button
+                                            className="features-button managed-status-button"
+                                            type="button"
+                                            onClick={() =>
+                                                handleManagedAction(
+                                                    functionality,
+                                                    'stato',
+                                                )
+                                            }
+                                            disabled={
+                                                isBusy ||
+                                                hasOpenForm ||
+                                                currentState.status === 'checking'
+                                            }
+                                        >
+                                            {currentAction === 'stato'
+                                                ? 'Controllo...'
+                                                : 'Stato'}
+                                        </button>
+
+                                        <button
+                                            className="features-button managed-stop-button"
+                                            type="button"
+                                            onClick={() =>
+                                                handleManagedAction(
+                                                    functionality,
+                                                    'stop',
+                                                )
+                                            }
+                                            disabled={
+                                                !canManage ||
+                                                isBusy ||
+                                                hasOpenForm ||
+                                                currentState.status === 'checking'
+                                            }
+                                        >
+                                            {currentAction === 'stop'
+                                                ? 'Stop...'
+                                                : 'Stop'}
+                                        </button>
+
+                                        <button
+                                            className="features-button managed-start-button"
+                                            type="button"
+                                            onClick={() =>
+                                                handleManagedAction(
+                                                    functionality,
+                                                    'avvia',
+                                                )
+                                            }
+                                            disabled={
+                                                !canManage ||
+                                                isBusy ||
+                                                hasOpenForm ||
+                                                currentState.status === 'checking'
+                                            }
+                                        >
+                                            {currentAction === 'avvia'
+                                                ? 'Avvio...'
+                                                : 'Avvia'}
+                                        </button>
+                                    </div>
+                                </article>
+                            )
+                        },
+                    )}
+                </div>
 
                 {createFormOpen && (
                     <div className="features-create-form">
@@ -1128,7 +1232,8 @@ function GestioneFunzionalita({
                 {!canManage && (
                     <p className="features-read-only">
                         Modalità sola lettura: il ruolo ospite può
-                        controllare lo stato di Squid, ma non può
+                        controllare lo stato di Squid, FAD e Cisco,
+                        ma non può
                         creare, avviare, fermare, modificare o
                         eliminare le funzionalità.
                     </p>
