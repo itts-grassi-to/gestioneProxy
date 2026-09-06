@@ -35,7 +35,7 @@ services:
       context: ./backend
 
     ports:
-      - "8100:8100"
+      - "6812:8100"
 
     volumes:
       - ./backend:/app
@@ -58,7 +58,7 @@ services:
       context: ./frontend
 
     ports:
-      - "3000:3000"
+      - "3010:3000"
 
     volumes:
       - ./frontend:/app
