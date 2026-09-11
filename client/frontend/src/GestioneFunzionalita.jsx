@@ -34,6 +34,7 @@ function GestioneFunzionalita({
                                   user,
                                   onBack,
                                   onLogout,
+                                  onInfo,
                               }) {
     const [functionalities, setFunctionalities] = useState([])
     const [loading, setLoading] = useState(true)
@@ -645,6 +646,14 @@ function GestioneFunzionalita({
                         <span>•</span>
                         Ruolo: <strong>{user.role}</strong>
                     </p>
+
+                    <button
+                        className="features-button secondary compact"
+                        type="button"
+                        onClick={onInfo}
+                    >
+                        Info
+                    </button>
 
                     <button
                         className="features-button secondary compact"

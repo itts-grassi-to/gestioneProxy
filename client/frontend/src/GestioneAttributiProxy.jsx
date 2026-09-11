@@ -70,7 +70,7 @@ function parseFormErrors(data) {
 }
 
 
-function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
+function GestioneAttributiProxy({user, onLogout, onGoToFunctions, onInfo,}) {
     const [proxies, setProxies] = useState([])
     const [formData, setFormData] = useState(initialForm)
     const [editingId, setEditingId] = useState(null)
@@ -364,6 +364,14 @@ function GestioneAttributiProxy({user, onLogout, onGoToFunctions,}) {
                         <span>•</span>
                         Ruolo: <strong>{user.role}</strong>
                     </p>
+
+                    <button
+                        className="proxy-button secondary compact"
+                        type="button"
+                        onClick={onInfo}
+                    >
+                        Info
+                    </button>
 
                     <button
                         className="proxy-button secondary compact"
