@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import GestioneAttributiProxy from './GestioneAttributiProxy'
 import GestioneFunzionalita from './GestioneFunzionalita'
+import Info from './Info'
 
 const API_URL =
     import.meta.env.VITE_API_URL || 'http://localhost:8100'
@@ -12,6 +13,7 @@ function App() {
     const [user, setUser] = useState(null)
 
     const [currentPage, setCurrentPage] = useState('proxy')
+    const [previousPage, setPreviousPage] = useState('proxy')
     const [selectedProxy, setSelectedProxy] = useState(null)
 
     const [error, setError] = useState('')
@@ -46,6 +48,7 @@ function App() {
             setPassword('')
             setSelectedProxy(null)
             setCurrentPage('proxy')
+            setPreviousPage('proxy')
         } catch {
             setError('Backend non raggiungibile')
         } finally {
@@ -63,6 +66,26 @@ function App() {
         })
 
         setSelectedProxy(null)
+        setCurrentPage('proxy')
+        setPreviousPage('proxy')
+    }
+
+    function handleOpenInfo() {
+        setError('')
+        setPreviousPage(currentPage)
+        setCurrentPage('info')
+    }
+
+    function handleCloseInfo() {
+        if (
+            user &&
+            previousPage === 'functions' &&
+            selectedProxy
+        ) {
+            setCurrentPage('functions')
+            return
+        }
+
         setCurrentPage('proxy')
     }
 
@@ -83,6 +106,13 @@ function App() {
         setError('')
         setSelectedProxy(null)
         setCurrentPage('proxy')
+        setPreviousPage('proxy')
+    }
+
+    if (currentPage === 'info') {
+        return (
+            <Info onBack={handleCloseInfo} />
+        )
     }
 
     if (user) {
@@ -96,6 +126,7 @@ function App() {
                     proxy={selectedProxy}
                     onBack={handleBackToProxies}
                     onLogout={handleLogout}
+                    onInfo={handleOpenInfo}
                 />
             )
         }
@@ -105,6 +136,7 @@ function App() {
                 user={user}
                 onLogout={handleLogout}
                 onGoToFunctions={handleGoToFunctions}
+                onInfo={handleOpenInfo}
             />
         )
     }
@@ -127,7 +159,9 @@ function App() {
                         id="username"
                         type="text"
                         value={username}
-                        onChange={(event) => setUsername(event.target.value)}
+                        onChange={(event) =>
+                            setUsername(event.target.value)
+                        }
                         autoComplete="username"
                         required
                     />
@@ -140,7 +174,9 @@ function App() {
                         id="password"
                         type="password"
                         value={password}
-                        onChange={(event) => setPassword(event.target.value)}
+                        onChange={(event) =>
+                            setPassword(event.target.value)
+                        }
                         autoComplete="current-password"
                         required
                     />
@@ -156,7 +192,9 @@ function App() {
                         type="submit"
                         disabled={loading}
                     >
-                        {loading ? 'Accesso in corso...' : 'Accedi'}
+                        {loading
+                            ? 'Accesso in corso...'
+                            : 'Accedi'}
                     </button>
                 </form>
 
@@ -170,6 +208,14 @@ function App() {
                     onClick={handleGuestAccess}
                 >
                     Continua come ospite
+                </button>
+
+                <button
+                    className="info-link-button"
+                    type="button"
+                    onClick={handleOpenInfo}
+                >
+                    Informazioni sul progetto
                 </button>
             </section>
         </main>
