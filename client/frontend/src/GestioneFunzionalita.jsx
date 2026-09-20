@@ -62,6 +62,12 @@ function GestioneFunzionalita({
     )
     const [squidAction, setSquidAction] = useState(null)
 
+    
+    // Stato per Modalità Squid Moodle
+    const [moodleState, setMoodleState] = useState('checking')
+    const [moodleMessage, setMoodleMessage] = useState('Verifica dello stato di Moodle...')
+    const [moodleAction, setMoodleAction] = useState(null)
+    
     const canManage = ['admin', 'docente'].includes(user.role)
 
     const hasOpenForm =
@@ -72,7 +78,8 @@ function GestioneFunzionalita({
         deletingId !== null ||
         creating ||
         saving ||
-        squidAction !== null
+        squidAction !== null ||
+        moodleAction !== null
 
     useEffect(() => {
         loadFunctionalities()
@@ -236,6 +243,57 @@ function GestioneFunzionalita({
         }
     }
 
+    async function handleMoodleAction(action) {
+        if (isBusy || hasOpenForm) {
+            return
+        }
+
+        if (action !== 'stato' && !canManage) {
+            return
+        }
+
+        setMoodleAction(action)
+
+        setMoodleMessage(
+            action === 'stato'
+                ? 'Verifica dello stato di Moodle...'
+                : action === 'avvia'
+                    ? 'Avvio di Moodle in corso...'
+                    : 'Arresto di Moodle in corso...',
+        )
+
+        setError('')
+        setSuccess('')
+
+        try {
+            const response = await fetch(
+                `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid-moodle/${action}`,
+                {
+                    method: 'POST',
+                },
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                setMoodleState('error')
+                setMoodleMessage(getErrorMessage(data))
+                return
+            }
+
+            setMoodleState(data.active ? 'active' : 'inactive')
+
+            setMoodleMessage(
+                data.message ||
+                (data.active ? 'Modalità Moodle attiva' : 'Modalità Moodle non attiva'),
+            )
+        } catch {
+            setMoodleState('error')
+            setMoodleMessage('Backend non raggiungibile')
+        } finally {
+            setMoodleAction(null)
+        }
+    }
     function openCreateForm() {
         if (isBusy || hasOpenForm) {
             return
@@ -845,7 +903,52 @@ function GestioneFunzionalita({
                         </button>
                     </div>
                 </article>
+                {/* --- MODALITÀ SQUID MOODLE (NUOVA FUNZIONALITÀ) --- */}
+                <article className={`features-squid-row ${moodleState}`}>
+                    <div className="features-squid-main">
+                        <div>
+                            <span className="features-squid-label">
+                                Servizio Squid
+                            </span>
+                            <strong>
+                                Modalità Squid Moodle
+                            </strong>
+                        </div>
+                        <p className="features-squid-status">
+                            {moodleMessage}
+                        </p>
+                    </div>
 
+                    <div className="features-squid-actions">
+                        <button
+                            className="features-button squid-status-button"
+                            type="button"
+                            onClick={() => handleMoodleAction('stato')}
+                            disabled={isBusy || hasOpenForm}
+                        >
+                            {moodleAction === 'stato' ? 'Controllo...' : 'Stato'}
+                        </button>
+
+                        <button
+                            className="features-button squid-stop-button"
+                            type="button"
+                            onClick={() => handleMoodleAction('stop')}
+                            disabled={!canManage || isBusy || hasOpenForm}
+                        >
+                            {moodleAction === 'stop' ? 'Stop...' : 'Stop'}
+                        </button>
+
+                        <button
+                            className="features-button squid-start-button"
+                            type="button"
+                            onClick={() => handleMoodleAction('avvia')}
+                            disabled={!canManage || isBusy || hasOpenForm}
+                        >
+                            {moodleAction === 'avvia' ? 'Avvio...' : 'Avvia'}
+                        </button>
+                    </div>
+                </article>
+  
                 {createFormOpen && (
                     <div className="features-create-form">
                         <div className="features-form-heading">
