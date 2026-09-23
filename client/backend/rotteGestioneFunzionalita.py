@@ -30,6 +30,11 @@ SQUID_STATUS_CODE = "05"
 SQUID_START_CODE = "06"
 SQUID_STOP_CODE = "07"
 
+# Codici comando per Modalità Squid Moodle (aggiornare se il motore usa codici diversi)
+SQUID_MOODLE_STATUS_CODE = "08"
+SQUID_MOODLE_START_CODE = "09"
+SQUID_MOODLE_STOP_CODE = "10"
+
 SQUID_STATUS_TIMEOUT = 5
 SQUID_OPERATION_TIMEOUT = 45
 
@@ -97,6 +102,34 @@ def create_squid_response(
         status_code=status.HTTP_502_BAD_GATEWAY,
         detail=(
             "Il server funzionalità Squid ha restituito "
+            f"una risposta non valida: {response_code}"
+        ),
+    )
+
+
+def create_squid_moodle_response(
+        response_code: str,
+):
+    if response_code == "OK":
+        return {
+            "success": True,
+            "active": True,
+            "status": "OK",
+            "message": "Modalità Squid Moodle attiva",
+        }
+
+    if response_code == "NOK":
+        return {
+            "success": True,
+            "active": False,
+            "status": "NOK",
+            "message": "Modalità Squid Moodle non attiva",
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail=(
+            "Il server funzionalità Squid Moodle ha restituito "
             f"una risposta non valida: {response_code}"
         ),
     )
@@ -178,7 +211,7 @@ def update_functionality(
         select(Funzionalita).where(
             Funzionalita.codice == request.codice,
             Funzionalita.id != functionality_id,
-            )
+        )
     )
 
     if duplicate is not None:
@@ -345,5 +378,78 @@ def squid_stop(
     )
 
     return create_squid_response(
+        response_code
+    )
+
+
+# ------------------------------------------------------------------
+# ENDPOINT PER MODALITÀ SQUID MOODLE
+# ------------------------------------------------------------------
+
+@router.post(
+    "/proxy/{proxy_id}/squid-moodle/stato",
+)
+def squid_moodle_status(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_MOODLE_STATUS_CODE,
+        timeout=SQUID_STATUS_TIMEOUT,
+    )
+
+    return create_squid_moodle_response(
+        response_code
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/squid-moodle/avvia",
+)
+def squid_moodle_start(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_MOODLE_START_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+
+    return create_squid_moodle_response(
+        response_code
+    )
+
+
+@router.post(
+    "/proxy/{proxy_id}/squid-moodle/stop",
+)
+def squid_moodle_stop(
+        proxy_id: int,
+        database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(
+        proxy_id,
+        database,
+    )
+
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=SQUID_MOODLE_STOP_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+
+    return create_squid_moodle_response(
         response_code
     )
