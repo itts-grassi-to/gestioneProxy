@@ -135,7 +135,35 @@ function GestioneFunzionalita({
             }
         }
 
+        async function loadInitialMoodleStatus() {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/funzionalita/proxy/${proxy.id}/squid-moodle/stato`,
+                    { method: 'POST' },
+                )
+                const data = await response.json()
+                if (cancelled) return
+
+                if (!response.ok) {
+                    setMoodleState('error')
+                    setMoodleMessage(getErrorMessage(data))
+                    return
+                }
+
+                setMoodleState(data.active ? 'active' : 'inactive')
+                setMoodleMessage(
+                    data.message || (data.active ? 'Modalità Moodle attiva' : 'Modalità Moodle non attiva'),
+                )
+            } catch {
+                if (!cancelled) {
+                    setMoodleState('error')
+                    setMoodleMessage('Backend non raggiungibile')
+                }
+            }
+        }
+        
         loadInitialSquidStatus()
+        loadInitialMoodleStatus()
 
         return () => {
             cancelled = true
