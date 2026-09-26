@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import time
+from Funzioni import FZ
 
 
 HOST = "0.0.0.0"
@@ -11,14 +12,32 @@ CODE_SQUID_STATUS = "05"
 CODE_SQUID_START = "06"
 CODE_SQUID_STOP = "07"
 
+# Codici comando per Modalità Squid Moodle (aggiornare se il motore usa codici diversi)
+CODE_MOODLE_STATUS = "08"
+CODE_MOODLE_START = "09"
+CODE_MOODLE_STOP = "10"
+# Codici comando per Modalità Squid Moodle (aggiornare se il motore usa codici diversi)
+CODE_CISCO_STATUS = "11"
+CODE_CISCO_START = "12"
+CODE_CISCO_STOP = "13"
+
 RESPONSE_TEST_OK = "50"
-RESPONSE_SQUID_OK = "OK"
-RESPONSE_SQUID_NOK = "NOK"
+RESPONSE_SQUID_OK = RESPONSE_OK = "OK"
+RESPONSE_SQUID_NOK = RESPONSE_NOK = "NOK"
 RESPONSE_UNKNOWN_COMMAND = "90"
 RESPONSE_ERROR = "99"
 
 SQUID_OPERATION_TIMEOUT = 45
 SQUID_CHECK_INTERVAL = 0.5
+
+OBJ_FUNZIONI=FZ("MOODLE","/etc/squid/squid.conf",
+    "/root/gestioneProxy/server/moodle/squid_exam",
+    "/root/gestioneProxy/server/squid.conf"
+)
+OBJ_FUNZIONI_CISCO=FZ("CISCO","/etc/squid/squid.conf",
+    "/root/gestioneProxy/server/cisco/squid_exam",
+    "/root/gestioneProxy/server/squid.conf"
+)
 
 
 def get_squid_state():
@@ -219,9 +238,39 @@ def handle_command(code):
             "l'arresto completo di Squid",
             flush=True,
         )
+    # GESTIONE MOODLE
+    if code == CODE_MOODLE_STATUS:
+        if OBJ_FUNZIONI.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
+    if code == CODE_MOODLE_START:
+        OBJ_FUNZIONI.start()
+        if OBJ_FUNZIONI.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
+    if code == CODE_MOODLE_STOP:
+        OBJ_FUNZIONI.stop()
+        if OBJ_FUNZIONI.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
+    # GESTIONE CISCO
+    if code == CODE_CISCO_STATUS:
+        if OBJ_FUNZIONI_CISCO.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
+    if code == CODE_CISCO_START:
+        OBJ_FUNZIONI_CISCO.start()
+        if OBJ_FUNZIONI_CISCO.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
+    if code == CODE_CISCO_STOP:
+        OBJ_FUNZIONI_CISCO.stop()
+        if OBJ_FUNZIONI.getStatus():
+            return RESPONSE_OK
+        return RESPONSE_NOK
 
-        return RESPONSE_ERROR
-
+    #return RESPONSE_ERROR
+    print("Codice sconosciuto: ",code)
     return RESPONSE_UNKNOWN_COMMAND
 
 

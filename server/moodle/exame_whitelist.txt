@@ -1,0 +1,14 @@
+### FILE DI CONFIGURAZIONE ###
+
+#📌 Regole:
+
+# aggiungi un dominio per riga
+
+# ricorda che il . davanti include i sottodomini
+
+# --------------------------------------#
+# Sito principale del test
+# NetAcad core
+.itisgrassi.it
+#.google.com
+

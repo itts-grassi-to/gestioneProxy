@@ -1,0 +1,50 @@
+### FILE DI CONFIGURAZIONE ###
+
+#📌 Regole:
+
+# aggiungi un dominio per riga
+
+# ricorda che il . davanti include i sottodomini
+
+# --------------------------------------#
+# Sito principale del test
+# NetAcad core
+.netacad.com
+
+# Auth
+auth.netacad.com
+identity.netacad.com
+sso.netacad.com
+
+# API
+api.netacad.com
+assessment.netacad.com
+
+# CDN / Storage
+.googleapis.com
+.gstatic.com
+.cloudfront.net
+.amazonaws.com
+.storage.googleapis.com
+
+# Video
+.brightcove.com
+.bcovlive.io
+.wistia.com
+
+# JS libraries
+cdnjs.cloudflare.com
+.jsdelivr.net
+
+# Security
+safebrowsing.googleapis.com
+
+#Spiegazione domini
+
+#🔹 netacad.com / www.netacad.com
+# – dominio principale della piattaforma (login e contenuti)
+#🔹 auth.netacad.com – autenticazione/login (vuoi che venga consentita)
+#🔹 storage.googleapis.com – storage esterno per elementi statici (e.g., immagini, video, script)
+#🔹 googleapis.com – API Google usate da molte app web moderne (script, richieste dati)
+#🔹 gstatic.com – CDN Google per risorse statiche ottimizzate
+#🔹 cloudfront.net – generale CDN Amazon CloudFront che potrebbe servire parti della pagina (NetAcad è servito principalmente via AWS)
