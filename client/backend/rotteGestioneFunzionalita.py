@@ -26,14 +26,18 @@ router = APIRouter(
 )
 
 
+# Codici avvio/stop squid
 SQUID_STATUS_CODE = "05"
 SQUID_START_CODE = "06"
 SQUID_STOP_CODE = "07"
-
 # Codici comando per Modalità Squid Moodle (aggiornare se il motore usa codici diversi)
 SQUID_MOODLE_STATUS_CODE = "08"
 SQUID_MOODLE_START_CODE = "09"
 SQUID_MOODLE_STOP_CODE = "10"
+# --- CODICI COMANDO CISCO ---
+CISCO_STATUS_CODE = "11"
+CISCO_START_CODE = "12"
+CISCO_STOP_CODE = "13"
 
 SQUID_STATUS_TIMEOUT = 5
 SQUID_OPERATION_TIMEOUT = 45
@@ -134,6 +138,30 @@ def create_squid_moodle_response(
         ),
     )
 
+def create_cisco_response(response_code: str):
+    if response_code == "OK":
+        return {
+            "success": True,
+            "active": True,
+            "status": "OK",
+            "message": "Modalità Cisco attiva",
+        }
+
+    if response_code == "NOK":
+        return {
+            "success": True,
+            "active": False,
+            "status": "NOK",
+            "message": "Modalità Cisco non attiva",
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail=(
+            "Il server funzionalità Cisco ha restituito "
+            f"una risposta non valida: {response_code}"
+        ),
+    )
 
 @router.get(
     "",
@@ -231,7 +259,6 @@ def update_functionality(
 
     return functionality
 
-
 @router.delete(
     "/{functionality_id}",
     status_code=status.HTTP_200_OK,
@@ -312,7 +339,7 @@ def start_functionality(
         "responseCode": response_code,
     }
 
-
+# ******************************* Stato del servizio squid
 @router.post(
     "/proxy/{proxy_id}/squid/stato",
 )
@@ -335,7 +362,7 @@ def squid_status(
         response_code
     )
 
-
+# ****************************** Avvio del servizio squid
 @router.post(
     "/proxy/{proxy_id}/squid/avvia",
 )
@@ -358,7 +385,7 @@ def squid_start(
         response_code
     )
 
-
+# ****************************** Stop del servizio squid
 @router.post(
     "/proxy/{proxy_id}/squid/stop",
 )
@@ -453,3 +480,47 @@ def squid_moodle_stop(
     return create_squid_moodle_response(
         response_code
     )
+# ------------------------------------------------------------------
+# ENDPOINT PER MODALITÀ CISCO
+# ------------------------------------------------------------------
+
+@router.post("/proxy/{proxy_id}/cisco/stato")
+def cisco_status(
+    proxy_id: int,
+    database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(proxy_id, database)
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=CISCO_STATUS_CODE,
+        timeout=SQUID_STATUS_TIMEOUT,
+    )
+    return create_cisco_response(response_code)
+
+
+@router.post("/proxy/{proxy_id}/cisco/avvia")
+def cisco_start(
+    proxy_id: int,
+    database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(proxy_id, database)
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=CISCO_START_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+    return create_cisco_response(response_code)
+
+
+@router.post("/proxy/{proxy_id}/cisco/stop")
+def cisco_stop(
+    proxy_id: int,
+    database: Session = Depends(get_database),
+):
+    proxy = get_proxy_or_404(proxy_id, database)
+    response_code = send_squid_command(
+        proxy=proxy,
+        code=CISCO_STOP_CODE,
+        timeout=SQUID_OPERATION_TIMEOUT,
+    )
+    return create_cisco_response(response_code)

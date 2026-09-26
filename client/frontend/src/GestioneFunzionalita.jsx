@@ -56,6 +56,7 @@ function GestioneFunzionalita({
     const [editError, setEditError] = useState('')
     const [saving, setSaving] = useState(false)
 
+    // Stato per Modalità Squid 
     const [squidState, setSquidState] = useState('checking')
     const [squidMessage, setSquidMessage] = useState(
         'Verifica dello stato di Squid...',
@@ -65,8 +66,17 @@ function GestioneFunzionalita({
     
     // Stato per Modalità Squid Moodle
     const [moodleState, setMoodleState] = useState('checking')
-    const [moodleMessage, setMoodleMessage] = useState('Verifica dello stato di Moodle...')
+    const [moodleMessage, setMoodleMessage] = useState(
+        'Verifica dello stato di Moodle...'
+    )
     const [moodleAction, setMoodleAction] = useState(null)
+
+    // Stato per Modalità Cisco
+    const [ciscoState, setCiscoState] = useState('checking')
+    const [ciscoMessage, setCiscoMessage] = useState(
+        'Verifica dello stato di Cisco...'
+    )
+    const [ciscoAction, setCiscoAction] = useState(null)
     
     const canManage = ['admin', 'docente'].includes(user.role)
 
@@ -79,7 +89,8 @@ function GestioneFunzionalita({
         creating ||
         saving ||
         squidAction !== null ||
-        moodleAction !== null
+        moodleAction !== null ||
+        ciscoAction !== null
 
     useEffect(() => {
         loadFunctionalities()
@@ -161,9 +172,36 @@ function GestioneFunzionalita({
                 }
             }
         }
-        
+
+        async function loadInitialCiscoStatus() {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/funzionalita/proxy/${proxy.id}/cisco/stato`,
+                    { method: 'POST' }
+                )
+                const data = await response.json()
+                if (cancelled) return
+
+                if (!response.ok) {
+                    setCiscoState('error')
+                    setCiscoMessage(getErrorMessage(data))
+                    return
+                }
+
+                setCiscoState(data.active ? 'active' : 'inactive')
+                setCiscoMessage(
+                    data.message || (data.active ? 'Modalità Cisco attiva' : 'Modalità Cisco non attiva')
+                )
+            } catch {
+                if (!cancelled) {
+                    setCiscoState('error')
+                    setCiscoMessage('Backend non raggiungibile')
+                }
+            }
+        }
         loadInitialSquidStatus()
         loadInitialMoodleStatus()
+        loadInitialCiscoStatus()
 
         return () => {
             cancelled = true
@@ -322,6 +360,53 @@ function GestioneFunzionalita({
             setMoodleAction(null)
         }
     }
+    
+    async function handleCiscoAction(action) {
+        if (isBusy || hasOpenForm) return
+
+        if (action !== 'stato' && !canManage) return
+
+        setCiscoAction(action)
+
+        setCiscoMessage(
+            action === 'stato'
+                ? 'Verifica dello stato di Cisco...'
+                : action === 'avvia'
+                    ? 'Avvio di Cisco in corso...'
+                    : 'Arresto di Cisco in corso...'
+        )
+
+        setError('')
+        setSuccess('')
+
+        try {
+            const response = await fetch(
+                `${API_URL}/api/funzionalita/proxy/${proxy.id}/cisco/${action}`,
+                { method: 'POST' }
+            )
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                setCiscoState('error')
+                setCiscoMessage(getErrorMessage(data))
+                return
+            }
+
+            setCiscoState(data.active ? 'active' : 'inactive')
+
+            setCiscoMessage(
+                data.message ||
+                (data.active ? 'Modalità Cisco attiva' : 'Modalità Cisco non attiva')
+            )
+        } catch {
+            setCiscoState('error')
+            setCiscoMessage('Backend non raggiungibile')
+        } finally {
+            setCiscoAction(null)
+        }
+    }
+
     function openCreateForm() {
         if (isBusy || hasOpenForm) {
             return
@@ -976,7 +1061,53 @@ function GestioneFunzionalita({
                         </button>
                     </div>
                 </article>
-  
+
+                {/* --- MODALITÀ CISCO --- */}
+                <article className={`features-squid-row ${ciscoState}`}>
+                    <div className="features-squid-main">
+                        <div>
+                            <span className="features-squid-label">
+                                Servizio Cisco
+                            </span>
+                            <strong>
+                                Modalità Cisco
+                            </strong>
+                        </div>
+                        <p className="features-squid-status">
+                            {ciscoMessage}
+                        </p>
+                    </div>
+
+                    <div className="features-squid-actions">
+                        <button
+                            className="features-button squid-status-button"
+                            type="button"
+                            onClick={() => handleCiscoAction('stato')}
+                            disabled={isBusy || hasOpenForm}
+                        >
+                            {ciscoAction === 'stato' ? 'Controllo...' : 'Stato'}
+                        </button>
+
+                        <button
+                            className="features-button squid-stop-button"
+                            type="button"
+                            onClick={() => handleCiscoAction('stop')}
+                            disabled={!canManage || isBusy || hasOpenForm}
+                        >
+                            {ciscoAction === 'stop' ? 'Stop...' : 'Stop'}
+                        </button>
+
+                        <button
+                            className="features-button squid-start-button"
+                            type="button"
+                            onClick={() => handleCiscoAction('avvia')}
+                            disabled={!canManage || isBusy || hasOpenForm}
+                        >
+                            {ciscoAction === 'avvia' ? 'Avvio...' : 'Avvia'}
+                        </button>
+                    </div>
+                </article>
+
                 {createFormOpen && (
                     <div className="features-create-form">
                         <div className="features-form-heading">
