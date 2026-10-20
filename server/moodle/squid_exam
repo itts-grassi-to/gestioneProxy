@@ -5,13 +5,21 @@
 # ===== MODALITÀ ESAME NETACAD =====
 
 # ACL domini consentiti
-acl exam_whitelist dstdomain "/root/gestioneProxy/server/moodle/exame_whitelist.txt"
+acl exam_whitelist dstdomain "/opt/gestioneProxy/server/moodle/exame_whitelist.txt"
 
 # HTTP/HTTPS: permetti solo ai domini in whitelist
 http_access allow exam_whitelist
 
+#connessioni proxabili
+#acl master src 10.100.206.0/24
+
 # Permetti CONNECT (HTTPS) solo verso la whitelist
+#acl SSL_ports port 3010
+#acl SSL_ports port 6812
 acl SSL_ports port 443
+
+#acl Safe_ports port 3010        # gestione proxy
+
 acl CONNECT method CONNECT
 http_access allow CONNECT exam_whitelist
 
@@ -19,8 +27,9 @@ http_access allow CONNECT exam_whitelist
 http_access deny all
 
 # Mantieni gestione localhost / purge
-http_access allow localhost manager
-http_access deny manager
+#http_access allow localhost manager
+#http_access allow master
+#http_access deny manager
 #http_access allow purge localhost
 #http_access deny purge
 http_access allow localhost

@@ -31,12 +31,12 @@ SQUID_OPERATION_TIMEOUT = 45
 SQUID_CHECK_INTERVAL = 0.5
 
 OBJ_FUNZIONI=FZ("MOODLE","/etc/squid/squid.conf",
-    "/root/gestioneProxy/server/moodle/squid_exam",
-    "/root/gestioneProxy/server/squid.conf"
+    "/opt/gestioneProxy/server/moodle/squid_exam",
+    "/opt/gestioneProxy/server/squid.conf"
 )
 OBJ_FUNZIONI_CISCO=FZ("CISCO","/etc/squid/squid.conf",
-    "/root/gestioneProxy/server/cisco/squid_exam",
-    "/root/gestioneProxy/server/squid.conf"
+    "/opt/gestioneProxy/server/cisco/squid_exam",
+    "/opt/gestioneProxy/server/squid.conf"
 )
 
 

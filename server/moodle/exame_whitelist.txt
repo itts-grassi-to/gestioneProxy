@@ -3,12 +3,26 @@
 #📌 Regole:
 
 # aggiungi un dominio per riga
-
+192.168.3.231
 # ricorda che il . davanti include i sottodomini
 
 # --------------------------------------#
 # Sito principale del test
 # NetAcad core
 .itisgrassi.it
-#.google.com
 
+# Autenticazione
+accounts.google.com
+accounts.google.it
+accounts.youtube.com
+
+# Risorse grafiche e statiche 
+.googleapis.com
+.gstatic.com
+
+# Telemetria e log di background
+play.google.com
+
+# Collegamenti a siti esterni
+it.wikipedia.org
+.w3schools.com

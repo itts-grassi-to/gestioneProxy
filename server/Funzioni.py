@@ -1,10 +1,13 @@
 import subprocess
+import sys
 class FZ:
     def __init__(self,sito_block,squid_conf,exam,ori):
         self.__sito_block=sito_block
         self.__squid_conf=squid_conf
         self.__ori = ori
         self.__exam = exam
+        if not self.esegui_comando(f"cp {self.__squid_conf} {self.__ori}"):
+            sys.exit("Errorissimo: non copio il file  squid.conf")
         #self.__normal = normal
     def getStatus(self):
         with open(self.__squid_conf, "r", encoding="utf-8") as file:
@@ -48,7 +51,7 @@ class FZ:
             return False
     def restart_squid_service(self) -> bool:
         """Riavvia il servizio Squid tramite systemctl."""
-        command = ["systemctl", "restart", "squid.service"]
+        command = ["systemctl", "reload", "squid.service"]
 
         try:
             # Esegue il comando.
