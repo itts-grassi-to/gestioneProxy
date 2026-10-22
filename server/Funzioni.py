@@ -6,8 +6,8 @@ class FZ:
         self.__squid_conf=squid_conf
         self.__ori = ori
         self.__exam = exam
-        if not self.esegui_comando(f"cp {self.__squid_conf} {self.__ori}"):
-            sys.exit("Errorissimo: non copio il file  squid.conf")
+        # if not self.esegui_comando(f"cp {self.__squid_conf} {self.__ori}"):
+          #  sys.exit("Errorissimo: non copio il file  squid.conf")
         #self.__normal = normal
     def getStatus(self):
         with open(self.__squid_conf, "r", encoding="utf-8") as file:

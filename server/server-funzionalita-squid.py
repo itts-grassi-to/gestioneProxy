@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import time
+import sys
 from Funzioni import FZ
 
 
@@ -30,13 +31,16 @@ RESPONSE_ERROR = "99"
 SQUID_OPERATION_TIMEOUT = 45
 SQUID_CHECK_INTERVAL = 0.5
 
-OBJ_FUNZIONI=FZ("MOODLE","/etc/squid/squid.conf",
+SQUID_CONF="/etc/squid/squid.conf"
+SQUID_CONF_ORI="/opt/gestioneProxy/server/squid.conf"
+
+OBJ_FUNZIONI=FZ("MOODLE",SQUID_CONF,
     "/opt/gestioneProxy/server/moodle/squid_exam",
-    "/opt/gestioneProxy/server/squid.conf"
+    SQUID_CONF_ORI
 )
-OBJ_FUNZIONI_CISCO=FZ("CISCO","/etc/squid/squid.conf",
+OBJ_FUNZIONI_CISCO=FZ("CISCO",SQUID_CONF,
     "/opt/gestioneProxy/server/cisco/squid_exam",
-    "/opt/gestioneProxy/server/squid.conf"
+    SQUID_CONF_ORI
 )
 
 
@@ -380,6 +384,35 @@ def start_server():
                     address,
                 )
 
-
+def is_squid_conf():
+    with open(SQUID_CONF, "r", encoding="utf-8") as file:
+                prima_riga = file.readline()
+                return ("MOODLE" in prima_riga) or ("CISCO" in prima_riga)
+def inizializzazioneFileDiConfigurazione():
+    if not is_squid_conf():
+        result = subprocess.run(
+                [
+                    "cp",
+                    SQUID_CONF,
+                    SQUID_CONF_ORI,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+        )
+        
+        if result.returncode != 0:
+            print(
+                "Errorissimo nella copia dell'originale "
+                f"{result.stderr.strip()}",
+                flush=True,
+            )        
+            return False
+    return True
 if __name__ == "__main__":
+    
+    if not inizializzazioneFileDiConfigurazione():
+        sys.exit("Errorissimo in fase di inizializzazione")
+
     start_server()
